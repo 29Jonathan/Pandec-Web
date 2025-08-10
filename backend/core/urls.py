@@ -17,7 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from orders.views import OrderViewSet, me, upload_file, download_url
+from orders.views import OrderViewSet, me, upload_file, download_url, list_files
 
 router = DefaultRouter()
 router.register(r'orders', OrderViewSet, basename='order')
@@ -28,4 +28,5 @@ urlpatterns = [
     path('api/me', me),
     path('api/upload', upload_file),
     path('api/download', download_url),
+    path('api/files', list_files),
 ]

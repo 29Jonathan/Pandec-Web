@@ -23,6 +23,7 @@ Backend `backend/.env`
 - SUPABASE_URL=https://YOUR-PROJECT-REF.supabase.co
 - SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
 - SUPABASE_JWKS_URL=https://YOUR-PROJECT-REF.supabase.co/auth/v1/keys
+- SUPABASE_JWT_SECRET=YOUR_SUPABASE_JWT_SECRET  # optional, from Settings → API (JWT secret)
 - ADMIN_EMAIL=admin@example.com
 - CORS_ALLOWED_ORIGINS=http://localhost:5173
 - DATABASE_URL=postgres://USER:PASSWORD@HOST:5432/postgres?sslmode=require (or keep sqlite for local)
