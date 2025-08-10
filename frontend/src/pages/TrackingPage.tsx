@@ -22,6 +22,9 @@ type Order = {
 export function TrackingPage() {
   const [orders, setOrders] = useState<Order[]>([])
   const [error, setError] = useState('')
+  const [query, setQuery] = useState('')
+  const [modal, setModal] = useState<Order | null>(null)
+  const [toast, setToast] = useState<string | null>(null)
 
   useEffect(() => {
     ;(async () => {
@@ -37,11 +40,36 @@ export function TrackingPage() {
     })()
   }, [])
 
+  async function search() {
+    setError('')
+    setToast(null)
+    const { data: session } = await supabase.auth.getSession()
+    if (!session.session) return setError('Please login')
+    const headers = { Authorization: `Bearer ${session.session.access_token}` }
+    try {
+      const res = await axios.get(`${API}/api/orders/`, { headers, params: { order_id: query } })
+      const list: Order[] = res.data
+      if (list.length > 0) {
+        setModal(list[0])
+      } else {
+        setToast('Cannot find order')
+        setTimeout(() => setToast(null), 2000)
+      }
+    } catch (e: any) {
+      setError(e.message)
+    }
+  }
+
   return (
     <div className="container">
       <h2>Tracking</h2>
       {error && <div style={{ color: 'salmon' }}>{error}</div>}
-      <div className="panel">
+      <div className="panel vstack">
+        <div className="hstack">
+          <input placeholder="Search by Order ID" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <button onClick={search}>Search</button>
+          {toast && <span className="badge">{toast}</span>}
+        </div>
         <table className="table">
           <thead>
             <tr>
@@ -69,6 +97,38 @@ export function TrackingPage() {
           </tbody>
         </table>
       </div>
+
+      {modal && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+        }} onClick={() => setModal(null)}>
+          <div className="panel" style={{ minWidth: 420 }} onClick={(e) => e.stopPropagation()}>
+            <h3>Order {modal.order_id}</h3>
+            <div className="vstack">
+              {(
+                [
+                  ['factory_id', modal.factory_id],
+                  ['customer_id', modal.customer_id],
+                  ['ship_name', modal.ship_name],
+                  ['departure_date', modal.departure_date],
+                  ['arrival_date', modal.arrival_date],
+                  ['type', modal.type],
+                  ['price', modal.price],
+                  ['amount', String(modal.amount)],
+                  ['weight', modal.weight],
+                  ['created_by', modal.created_by],
+                ] as const
+              ).map(([k,v]) => (
+                <div className="hstack" key={k}><strong style={{width:140}}>{k}</strong><span>{v}</span></div>
+              ))}
+            </div>
+            <div className="hstack" style={{ marginTop: 12, justifyContent: 'flex-end' }}>
+              <button onClick={() => setModal(null)}>Close</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

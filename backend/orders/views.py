@@ -33,8 +33,13 @@ class OrderViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if getattr(user, 'is_admin', False):
-            return Order.objects.all()
-        return Order.objects.filter(created_by=user.email)
+            qs = Order.objects.all()
+        else:
+            qs = Order.objects.filter(created_by=user.email)
+        order_id = self.request.query_params.get('order_id')
+        if order_id:
+            qs = qs.filter(order_id=order_id)
+        return qs
 
 
 @api_view(['GET'])
