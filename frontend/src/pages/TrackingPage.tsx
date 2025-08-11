@@ -97,12 +97,12 @@ export function TrackingPage() {
       </div>
 
       {modal && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
-        }} onClick={() => setModal(null)}>
-          <div className="panel" style={{ minWidth: 420 }} onClick={(e) => e.stopPropagation()}>
-            <h3>Order {modal.order_id}</h3>
+        <div className="modal-overlay" onClick={() => setModal(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Order {modal.order_id}</h3>
+              <button className="btn btn-outline" onClick={() => setModal(null)}>Close</button>
+            </div>
             <div className="vstack">
               {(
                 [
@@ -121,26 +121,26 @@ export function TrackingPage() {
                 <div className="hstack" key={k}><strong style={{width:140}}>{k}</strong><span>{v}</span></div>
               ))}
             </div>
-            <div className="hstack" style={{ marginTop: 12, justifyContent: 'flex-end' }}>
-              <button onClick={() => setModal(null)}>Close</button>
+            <div className="modal-actions">
+              <button className="btn btn-outline" onClick={() => setModal(null)}>Close</button>
             </div>
           </div>
         </div>
       )}
 
       {notFoundId && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
-        }} onClick={() => setNotFoundId(null)}>
-          <div className="panel" style={{ minWidth: 380 }} onClick={(e) => e.stopPropagation()}>
-            <h3>Order not found</h3>
+        <div className="modal-overlay" onClick={() => setNotFoundId(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Order not found</h3>
+              <button className="btn btn-outline" onClick={() => setNotFoundId(null)}>Close</button>
+            </div>
             <div className="vstack">
               <div className="hstack"><strong style={{width:140}}>Order ID</strong><span>{notFoundId}</span></div>
               <div className="helper">No order matched the provided ID. Check the ID and try again.</div>
             </div>
-            <div className="hstack" style={{ marginTop: 12, justifyContent: 'flex-end' }}>
-              <button onClick={() => setNotFoundId(null)}>Close</button>
+            <div className="modal-actions">
+              <button className="btn" onClick={() => setNotFoundId(null)}>OK</button>
             </div>
           </div>
         </div>
