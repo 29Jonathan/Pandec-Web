@@ -28,35 +28,10 @@ h1 { font-size: 28px; }
 h2 { font-size: 22px; }
 h3 { font-size: 18px; color: #1f2937; }
 
-.app-shell {
-  display: grid;
-  grid-template-rows: 56px 1fr;
-  min-height: 100vh;
-}
-.navbar {
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 16px;
-  background: #ffffff;
-  border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  box-shadow: var(--shadow-sm);
-}
-.nav-left, .nav-right { display: flex; align-items: center; gap: 12px; }
-.brand { font-weight: 700; letter-spacing: 0.3px; color: var(--text); }
-.nav-link { color: var(--muted); text-decoration: none; padding: 8px 10px; border-radius: 8px; }
-.nav-link.active, .nav-link:hover { color: var(--brand); background: #eef2ff; }
-.badge { padding: 4px 10px; border-radius: 999px; background: #ecfeff; color: #0369a1; font-size: 12px; border: 1px solid #bae6fd; }
+/* Removed app-shell class that conflicts with Bootstrap layout */
+/* Removed custom navbar styles that conflict with Bootstrap */
 
-.container {
-  padding: 20px;
-  max-width: 1100px;
-  margin: 0 auto;
-}
+/* Removed custom container class that conflicts with Bootstrap */
 .panel {
   background: var(--panel);
   border: 1px solid var(--border);
@@ -70,34 +45,9 @@ h3 { font-size: 18px; color: #1f2937; }
 .grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
-input, select, button {
-  border-radius: 10px;
-  border: 1px solid var(--border);
-  padding: 10px 12px;
-}
-input, select {
-  background: #ffffff;
-  color: var(--text);
-}
-input:focus, select:focus {
-  outline: 2px solid #bfdbfe;
-  border-color: #bfdbfe;
-}
-button, .btn {
-  cursor: pointer;
-  background: var(--brand);
-  color: #fff;
-  border-color: transparent;
-}
-button:hover, .btn:hover { background: #1d4ed8; }
-.btn-outline { background: #fff; color: var(--text); border: 1px solid var(--border); }
-.btn-outline:hover { background: #f3f4f6; }
-.btn-danger { background: var(--danger); }
+/* Removed custom form styles that conflict with Bootstrap */
 
-.table { width: 100%; border-collapse: collapse; }
-.table th, .table td { border-bottom: 1px solid var(--border); padding: 10px; text-align: left; }
-.table thead th { background: #f8fafc; color: #334155; }
-.table tbody tr:nth-child(even) { background: #fafafa; }
+/* Removed custom table styles that conflict with Bootstrap */
 .table-wrap { width: 100%; overflow-x: auto; }
 
 .helper { color: var(--muted); font-size: 13px; }
