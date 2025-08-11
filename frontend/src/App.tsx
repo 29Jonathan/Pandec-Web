@@ -1,5 +1,4 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { Container } from 'react-bootstrap'
 import { Navigation } from './components/Navigation'
 import { Tracking } from './pages/Tracking'
 import { Documents } from './pages/Documents'
@@ -12,7 +11,7 @@ function App() {
     <BrowserRouter>
       <div className="min-vh-100 bg-light">
         <Navigation />
-        <Container fluid className="py-4">
+        <div className="py-4">
           <Routes>
             <Route path="/" element={<Navigate to="/tracking" replace />} />
             <Route path="/tracking" element={<Tracking />} />
@@ -21,7 +20,7 @@ function App() {
             <Route path="/auth" element={<Auth />} />
             <Route path="*" element={<Navigate to="/tracking" replace />} />
           </Routes>
-        </Container>
+        </div>
       </div>
     </BrowserRouter>
   )

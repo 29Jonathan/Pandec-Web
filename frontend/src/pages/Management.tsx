@@ -83,7 +83,7 @@ export function Management() {
   }
 
   return (
-    <Container>
+    <Container fluid>
       <Row className="mb-4">
         <Col>
           <h2 className="mb-3">Order Management</h2>

@@ -82,7 +82,7 @@ export function Tracking() {
 
   if (loading) {
     return (
-      <Container>
+      <Container fluid>
         <div className="text-center py-5">
           <div className="spinner-border text-primary" role="status">
             <span className="visually-hidden">Loading...</span>
@@ -93,7 +93,7 @@ export function Tracking() {
   }
 
   return (
-    <Container>
+    <Container fluid>
       <Row className="mb-4">
         <Col>
           <h2 className="mb-3">Order Tracking</h2>

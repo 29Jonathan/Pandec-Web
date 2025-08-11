@@ -98,7 +98,7 @@ export function Auth() {
   }
 
   return (
-    <Container>
+    <Container fluid>
       <Row className="justify-content-center">
         <Col md={8} lg={6} xl={5}>
           <div className="text-center mb-4">
