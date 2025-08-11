@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import axios from 'axios'
 import { supabase } from '../lib/supabase'
+import { Container, Row, Col, Card, Form, Button, Table, Alert } from 'react-bootstrap'
 
 const API = import.meta.env.VITE_API_BASE_URL as string
 
@@ -55,17 +56,21 @@ export function DocumentsPage() {
   }
 
   return (
-    <div className="container">
-      <h2>Documents</h2>
-      <div className="panel vstack">
-        <form onSubmit={upload} className="hstack">
-          <input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-          <button type="submit">Upload</button>
-          {error && <span className="helper">{error}</span>}
-        </form>
-        <div>
-          <h3>Your files</h3>
-          <table className="table">
+    <Container className="py-3">
+      <Row className="mb-3"><Col><h2 className="mb-0">Documents</h2></Col></Row>
+      <Card className="mb-3">
+        <Card.Body>
+          {error && <Alert variant="danger">{error}</Alert>}
+          <Form onSubmit={upload} className="d-flex align-items-center gap-2">
+            <Form.Control type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+            <Button type="submit">Upload</Button>
+          </Form>
+        </Card.Body>
+      </Card>
+      <Card>
+        <Card.Header>Your files</Card.Header>
+        <Card.Body className="p-0">
+          <Table hover responsive className="mb-0">
             <thead>
               <tr>
                 <th>Name</th><th>Size</th><th>Modified</th><th></th>
@@ -77,14 +82,14 @@ export function DocumentsPage() {
                   <td>{f.name}</td>
                   <td>{f.size ?? ''}</td>
                   <td>{f.last_modified ?? ''}</td>
-                  <td><button onClick={() => download(f.path)}>Download</button></td>
+                  <td className="text-end pe-3"><Button size="sm" onClick={() => download(f.path)}>Download</Button></td>
                 </tr>
               ))}
             </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+          </Table>
+        </Card.Body>
+      </Card>
+    </Container>
   )
 }
 

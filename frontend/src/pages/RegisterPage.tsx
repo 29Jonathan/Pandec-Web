@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { Form, Button, Alert } from 'react-bootstrap'
 
 export function RegisterPage() {
   const [email, setEmail] = useState('')
@@ -27,19 +28,19 @@ export function RegisterPage() {
   }
 
   return (
-    <div style={{ padding: 16 }}>
-      <h2>Register</h2>
-      <form onSubmit={onSubmit} style={{ display: 'grid', gap: 8, maxWidth: 360 }}>
-        <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
-        <input placeholder="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-        <input placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
-        <select value={role} onChange={(e) => setRole(e.target.value as 'customer' | 'factory')}>
+    <div>
+      <h3 className="mb-3">Register</h3>
+      {error && <Alert variant="danger">{error}</Alert>}
+      <Form onSubmit={onSubmit} className="d-grid gap-2">
+        <Form.Control placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+        <Form.Control placeholder="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+        <Form.Control placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
+        <Form.Select value={role} onChange={(e) => setRole(e.target.value as 'customer' | 'factory')}>
           <option value="customer">Customer</option>
           <option value="factory">Factory</option>
-        </select>
-        <button type="submit">Register</button>
-        {error && <div style={{ color: 'red' }}>{error}</div>}
-      </form>
+        </Form.Select>
+        <Button type="submit">Register</Button>
+      </Form>
     </div>
   )
 }

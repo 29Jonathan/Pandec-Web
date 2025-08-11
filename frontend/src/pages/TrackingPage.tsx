@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import axios from 'axios'
+import { Container, Row, Col, Card, Form, Button, Table, Modal, Badge } from 'react-bootstrap'
 import { supabase } from '../lib/supabase'
 
 const API = import.meta.env.VITE_API_BASE_URL as string
@@ -60,92 +61,95 @@ export function TrackingPage() {
   }
 
   return (
-    <div className="container">
-      <h2>Tracking</h2>
-      {error && <div style={{ color: 'salmon' }}>{error}</div>}
-      <div className="panel vstack">
-        <div className="hstack">
-          <input placeholder="Search by Order ID" value={query} onChange={(e) => setQuery(e.target.value)} />
-          <button onClick={search}>Search</button>
-        </div>
-        <table className="table">
-          <thead>
-            <tr>
-              {['order_id','factory_id','customer_id','ship_name','departure_date','arrival_date','type','price','amount','weight','created_by'].map(h => (
-                <th key={h}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {orders.map(o => (
-              <tr key={o.id}>
-                <td>{o.order_id}</td>
-                <td>{o.factory_id}</td>
-                <td>{o.customer_id}</td>
-                <td>{o.ship_name}</td>
-                <td>{o.departure_date}</td>
-                <td>{o.arrival_date}</td>
-                <td>{o.type}</td>
-                <td>{o.price}</td>
-                <td>{o.amount}</td>
-                <td>{o.weight}</td>
-                <td>{o.created_by}</td>
-              </tr>
+    <Container className="py-3">
+      <Row className="align-items-center mb-3">
+        <Col><h2 className="mb-0">Tracking</h2></Col>
+        <Col xs="12" md="6">
+          <Form className="d-flex" onSubmit={(e) => { e.preventDefault(); search(); }}>
+            <Form.Control placeholder="Search by Order ID" value={query} onChange={(e) => setQuery(e.target.value)} />
+            <Button className="ms-2" onClick={search}>Search</Button>
+          </Form>
+        </Col>
+      </Row>
+      {error && <div className="text-danger mb-3">{error}</div>}
+      <Card>
+        <Card.Body className="p-0">
+          <div className="table-wrap">
+            <Table hover responsive className="mb-0">
+              <thead>
+                <tr>
+                  {['order_id','factory_id','customer_id','ship_name','departure_date','arrival_date','type','price','amount','weight','created_by'].map(h => (
+                    <th key={h}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {orders.map(o => (
+                  <tr key={o.id}>
+                    <td>{o.order_id}</td>
+                    <td>{o.factory_id}</td>
+                    <td>{o.customer_id}</td>
+                    <td>{o.ship_name}</td>
+                    <td>{o.departure_date}</td>
+                    <td>{o.arrival_date}</td>
+                    <td>{o.type}</td>
+                    <td>{o.price}</td>
+                    <td>{o.amount}</td>
+                    <td>{o.weight}</td>
+                    <td>{o.created_by}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </div>
+        </Card.Body>
+      </Card>
+
+      <Modal show={!!modal} onHide={() => setModal(null)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Order {modal?.order_id}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Row className="gy-2">
+            {modal && ([
+              ['factory_id', modal.factory_id],
+              ['customer_id', modal.customer_id],
+              ['ship_name', modal.ship_name],
+              ['departure_date', modal.departure_date],
+              ['arrival_date', modal.arrival_date],
+              ['type', modal.type],
+              ['price', modal.price],
+              ['amount', String(modal.amount)],
+              ['weight', modal.weight],
+              ['created_by', modal.created_by],
+            ] as const).map(([k,v]) => (
+              <Col xs={12} key={k} className="d-flex">
+                <strong style={{width:140}} className="me-2 text-capitalize">{k}</strong>
+                <span>{v}</span>
+              </Col>
             ))}
-          </tbody>
-        </table>
-      </div>
+          </Row>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setModal(null)}>Close</Button>
+        </Modal.Footer>
+      </Modal>
 
-      {modal && (
-        <div className="modal-overlay" onClick={() => setModal(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Order {modal.order_id}</h3>
-              <button className="btn btn-outline" onClick={() => setModal(null)}>Close</button>
-            </div>
-            <div className="vstack">
-              {(
-                [
-                  ['factory_id', modal.factory_id],
-                  ['customer_id', modal.customer_id],
-                  ['ship_name', modal.ship_name],
-                  ['departure_date', modal.departure_date],
-                  ['arrival_date', modal.arrival_date],
-                  ['type', modal.type],
-                  ['price', modal.price],
-                  ['amount', String(modal.amount)],
-                  ['weight', modal.weight],
-                  ['created_by', modal.created_by],
-                ] as const
-              ).map(([k,v]) => (
-                <div className="hstack" key={k}><strong style={{width:140}}>{k}</strong><span>{v}</span></div>
-              ))}
-            </div>
-            <div className="modal-actions">
-              <button className="btn btn-outline" onClick={() => setModal(null)}>Close</button>
-            </div>
+      <Modal show={!!notFoundId} onHide={() => setNotFoundId(null)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Order not found</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <div className="d-flex align-items-center gap-2">
+            <strong>Order ID:</strong> <Badge bg="secondary">{notFoundId}</Badge>
           </div>
-        </div>
-      )}
-
-      {notFoundId && (
-        <div className="modal-overlay" onClick={() => setNotFoundId(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Order not found</h3>
-              <button className="btn btn-outline" onClick={() => setNotFoundId(null)}>Close</button>
-            </div>
-            <div className="vstack">
-              <div className="hstack"><strong style={{width:140}}>Order ID</strong><span>{notFoundId}</span></div>
-              <div className="helper">No order matched the provided ID. Check the ID and try again.</div>
-            </div>
-            <div className="modal-actions">
-              <button className="btn" onClick={() => setNotFoundId(null)}>OK</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+          <div className="text-muted mt-2">No order matched the provided ID. Check the ID and try again.</div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button onClick={() => setNotFoundId(null)}>OK</Button>
+        </Modal.Footer>
+      </Modal>
+    </Container>
   )
 }
 

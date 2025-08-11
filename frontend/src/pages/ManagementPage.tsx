@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import axios from 'axios'
 import { supabase } from '../lib/supabase'
+import { Container, Row, Col, Card, Form, Button, Alert } from 'react-bootstrap'
 
 const API = import.meta.env.VITE_API_BASE_URL as string
 
@@ -25,21 +26,33 @@ export function ManagementPage() {
   }
 
   return (
-    <div className="container">
-      <h2>Management</h2>
-      <div className="panel">
-        <form onSubmit={createOrder} className="grid cols-3">
-          {(['order_id','factory_id','customer_id','ship_name','departure_date','arrival_date','type','price','amount','weight'] as const).map(key => (
-            <input key={key} placeholder={key} type={key.includes('date') ? 'date' : key==='amount' ? 'number' : 'text'} value={(form as any)[key]}
-              onChange={(e) => setForm({ ...form, [key]: key==='amount'? Number(e.target.value): e.target.value })} />
-          ))}
-          <div className="hstack">
-            <button type="submit">Create</button>
-            {error && <span className="helper">{error}</span>}
-          </div>
-        </form>
-      </div>
-    </div>
+    <Container className="py-3">
+      <Row className="mb-3"><Col><h2 className="mb-0">Management</h2></Col></Row>
+      <Card>
+        <Card.Body>
+          {error && <Alert variant="danger">{error}</Alert>}
+          <Form onSubmit={createOrder}>
+            <Row className="g-3">
+              {(['order_id','factory_id','customer_id','ship_name','departure_date','arrival_date','type','price','amount','weight'] as const).map(key => (
+                <Col md={4} key={key}>
+                  <Form.Group>
+                    <Form.Label className="text-capitalize">{key.replace('_',' ')}</Form.Label>
+                    <Form.Control
+                      type={key.includes('date') ? 'date' : key==='amount' ? 'number' : 'text'}
+                      value={(form as any)[key]}
+                      onChange={(e) => setForm({ ...form, [key]: key==='amount'? Number(e.target.value): e.target.value })}
+                    />
+                  </Form.Group>
+                </Col>
+              ))}
+              <Col xs={12} className="d-flex justify-content-end">
+                <Button type="submit">Create</Button>
+              </Col>
+            </Row>
+          </Form>
+        </Card.Body>
+      </Card>
+    </Container>
   )
 }
 

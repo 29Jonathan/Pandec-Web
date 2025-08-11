@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { Form, Button, Alert } from 'react-bootstrap'
 
 export function LoginPage() {
   const [email, setEmail] = useState('')
@@ -18,14 +19,14 @@ export function LoginPage() {
   }
 
   return (
-    <div style={{ padding: 16 }}>
-      <h2>Login</h2>
-      <form onSubmit={onSubmit} style={{ display: 'grid', gap: 8, maxWidth: 360 }}>
-        <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
-        <input placeholder="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-        <button type="submit">Login</button>
-        {error && <div style={{ color: 'red' }}>{error}</div>}
-      </form>
+    <div>
+      <h3 className="mb-3">Login</h3>
+      {error && <Alert variant="danger">{error}</Alert>}
+      <Form onSubmit={onSubmit} className="d-grid gap-2">
+        <Form.Control placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+        <Form.Control placeholder="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+        <Button type="submit">Login</Button>
+      </Form>
     </div>
   )
 }
