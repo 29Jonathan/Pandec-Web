@@ -82,11 +82,6 @@ export function Documents() {
       // Reload files list
       await loadFiles()
       
-      // Auto-download the file
-      const path = response.data.path
-      const downloadResponse = await axios.get(`${API}/api/download?path=${encodeURIComponent(path)}`, { headers })
-      window.open(downloadResponse.data.url, '_blank')
-      
     } catch (err: any) {
       setError(err.response?.data?.detail || err.message || 'Upload failed')
     } finally {

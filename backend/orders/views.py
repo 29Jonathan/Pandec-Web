@@ -126,10 +126,20 @@ def list_files(request):
         name = getattr(it, 'name', None) or (isinstance(it, dict) and it.get('name'))
         if not name:
             continue
+        
+        # Try to get size from various possible attributes
+        size = None
+        if hasattr(it, 'metadata') and it.metadata:
+            size = it.metadata.get('size')
+        elif isinstance(it, dict):
+            size = it.get('metadata', {}).get('size') if it.get('metadata') else it.get('size')
+        elif hasattr(it, 'size'):
+            size = it.size
+            
         files.append({
             'name': name,
             'path': f"{bucket}/{prefix}/{name}",
             'last_modified': getattr(it, 'updated_at', None) or (isinstance(it, dict) and it.get('updated_at')),
-            'size': getattr(it, 'size', None) or (isinstance(it, dict) and it.get('size')),
+            'size': size,
         })
     return Response({'files': files})
