@@ -1,25 +1,25 @@
-import './App.css'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { NavBar } from './components/NavBar'
-import { TrackingPage } from './pages/TrackingPage'
-import { ManagementPage } from './pages/ManagementPage'
-import { DocumentsPage } from './pages/DocumentsPage'
-import { UserPage } from './pages/UserPage'
 import { Container } from 'react-bootstrap'
+import { Navigation } from './components/Navigation'
+import { Tracking } from './pages/Tracking'
+import { Documents } from './pages/Documents'
+import { Management } from './pages/Management'
+import { Auth } from './pages/Auth'
+import 'bootstrap/dist/css/bootstrap.min.css'
 
 function App() {
   return (
     <BrowserRouter>
-      <div className="app-shell">
-        <NavBar />
-        <Container fluid className="px-4">
+      <div className="min-vh-100 bg-light">
+        <Navigation />
+        <Container fluid className="py-4">
           <Routes>
-            <Route path="/" element={<TrackingPage />} />
-            <Route path="/tracking" element={<TrackingPage />} />
-            <Route path="/management" element={<ManagementPage />} />
-            <Route path="/documents" element={<DocumentsPage />} />
-            <Route path="/user" element={<UserPage />} />
-            <Route path="*" element={<Navigate to="/tracking" />} />
+            <Route path="/" element={<Navigate to="/tracking" replace />} />
+            <Route path="/tracking" element={<Tracking />} />
+            <Route path="/documents" element={<Documents />} />
+            <Route path="/management" element={<Management />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="*" element={<Navigate to="/tracking" replace />} />
           </Routes>
         </Container>
       </div>
