@@ -1,17 +1,17 @@
 :root {
-  --bg: #0b1020;
-  --panel: #11162a;
-  --text: #e8ecf1;
-  --muted: #9aa4b2;
-  --brand: #6ea8fe;
-  --brand-2: #00d1b2;
-  --border: #1c2340;
+  --bg: #f7f9fc;
+  --panel: #ffffff;
+  --text: #0f172a;
+  --muted: #64748b;
+  --brand: #2563eb; /* blue-600 */
+  --brand-2: #10b981; /* emerald-500 */
+  --border: #e5e7eb; /* gray-200 */
 }
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; }
 body {
   margin: 0;
-  background: linear-gradient(180deg, #0a0f1e, #0b1020 30%);
+  background: var(--bg);
   color: var(--text);
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
 }
@@ -27,18 +27,18 @@ body {
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
-  background: rgba(17,22,42,0.8);
+  background: #ffffff;
   border-bottom: 1px solid var(--border);
-  backdrop-filter: blur(8px);
   position: sticky;
   top: 0;
   z-index: 100;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
 }
 .nav-left, .nav-right { display: flex; align-items: center; gap: 12px; }
 .brand { font-weight: 700; letter-spacing: 0.3px; color: var(--text); }
 .nav-link { color: var(--muted); text-decoration: none; padding: 8px 10px; border-radius: 8px; }
-.nav-link.active, .nav-link:hover { color: var(--text); background: #0e1430; }
-.badge { padding: 4px 8px; border-radius: 999px; background: #102b3f; color: #6ee7ff; font-size: 12px; }
+.nav-link.active, .nav-link:hover { color: var(--brand); background: #eef2ff; }
+.badge { padding: 4px 10px; border-radius: 999px; background: #ecfeff; color: #0369a1; font-size: 12px; border: 1px solid #bae6fd; }
 
 .container {
   padding: 20px;
@@ -50,6 +50,7 @@ body {
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 16px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.04);
 }
 .hstack { display: flex; gap: 12px; align-items: center; }
 .vstack { display: grid; gap: 10px; }
@@ -61,13 +62,25 @@ input, select, button {
   border-radius: 10px;
   border: 1px solid var(--border);
   padding: 10px 12px;
-  background: #0c1328;
+}
+input, select {
+  background: #ffffff;
   color: var(--text);
 }
-button { cursor: pointer; background: #0e2a57; border-color: #103572; }
-button:hover { background: #12356b; }
+input:focus, select:focus {
+  outline: 2px solid #bfdbfe;
+  border-color: #bfdbfe;
+}
+button {
+  cursor: pointer;
+  background: var(--brand);
+  color: #fff;
+  border-color: transparent;
+}
+button:hover { background: #1d4ed8; }
 
 .table { width: 100%; border-collapse: collapse; }
-.table th, .table td { border-bottom: 1px solid var(--border); padding: 8px; text-align: left; }
+.table th, .table td { border-bottom: 1px solid var(--border); padding: 10px; text-align: left; }
+.table thead th { background: #f8fafc; color: #334155; }
 
 .helper { color: var(--muted); font-size: 13px; }
