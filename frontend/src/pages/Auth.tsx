@@ -81,14 +81,8 @@ export function Auth() {
       if (error) {
         setError(error.message)
       } else {
-        setSuccess('Registration successful! Please check your email for verification (if enabled).')
-        setSignupForm({
-          email: '',
-          password: '',
-          username: '',
-          role: 'customer'
-        })
-        setActiveTab('login')
+        setSuccess('Registration successful! Redirecting...')
+        setTimeout(() => navigate('/tracking'), 1000)
       }
     } catch (err: any) {
       setError(err.message || 'Registration failed')
