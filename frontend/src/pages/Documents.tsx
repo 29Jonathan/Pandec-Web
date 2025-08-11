@@ -94,7 +94,7 @@ export function Documents() {
     }
   }
 
-  const handleDownload = async (path: string, filename: string) => {
+  const handleDownload = async (path: string, _filename: string) => {
     try {
       const { data: session } = await supabase.auth.getSession()
       if (!session.session) {
