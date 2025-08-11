@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import axios from 'axios'
-import { Container, Row, Col, Card, Form, Button, Table, Modal, Badge } from 'react-bootstrap'
 import { supabase } from '../lib/supabase'
+import { Row, Col, Card, Form, Button, Table, Modal, Badge } from 'react-bootstrap'
 
 const API = import.meta.env.VITE_API_BASE_URL as string
 
@@ -61,7 +61,7 @@ export function TrackingPage() {
   }
 
   return (
-    <Container className="py-3">
+    <div className="py-3">
       <Row className="align-items-center mb-3">
         <Col><h2 className="mb-0">Tracking</h2></Col>
         <Col xs="12" md="6">
@@ -149,7 +149,7 @@ export function TrackingPage() {
           <Button onClick={() => setNotFoundId(null)}>OK</Button>
         </Modal.Footer>
       </Modal>
-    </Container>
+    </div>
   )
 }
 

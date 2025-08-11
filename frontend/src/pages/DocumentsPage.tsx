@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import axios from 'axios'
 import { supabase } from '../lib/supabase'
-import { Container, Row, Col, Card, Form, Button, Table, Alert } from 'react-bootstrap'
+import { Row, Col, Card, Form, Button, Table, Alert } from 'react-bootstrap'
 
 const API = import.meta.env.VITE_API_BASE_URL as string
 
@@ -56,7 +56,7 @@ export function DocumentsPage() {
   }
 
   return (
-    <Container className="py-3">
+    <div className="py-3">
       <Row className="mb-3"><Col><h2 className="mb-0">Documents</h2></Col></Row>
       <Card className="mb-3">
         <Card.Body>
@@ -89,7 +89,7 @@ export function DocumentsPage() {
           </Table>
         </Card.Body>
       </Card>
-    </Container>
+    </div>
   )
 }
 

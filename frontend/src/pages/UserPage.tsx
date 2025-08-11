@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { LoginPage } from './LoginPage'
 import { RegisterPage } from './RegisterPage'
-import { Container, Row, Col, Card } from 'react-bootstrap'
+import { Row, Col, Card } from 'react-bootstrap'
 
 export function UserPage() {
   const [user, setUser] = useState<any>(null)
@@ -16,18 +16,18 @@ export function UserPage() {
 
   if (!user) {
     return (
-      <Container className="py-3">
+      <div className="py-3">
         <Row className="g-3">
           <Col md={6}><Card><Card.Body><LoginPage /></Card.Body></Card></Col>
           <Col md={6}><Card><Card.Body><RegisterPage /></Card.Body></Card></Col>
         </Row>
-      </Container>
+      </div>
     )
   }
 
   const meta = user.user_metadata || {}
   return (
-    <Container className="py-3">
+    <div className="py-3">
       <Row className="mb-3"><Col><h2 className="mb-0">User</h2></Col></Row>
       <Card>
         <Card.Body>
@@ -38,7 +38,7 @@ export function UserPage() {
           </div>
         </Card.Body>
       </Card>
-    </Container>
+    </div>
   )
 }
 
