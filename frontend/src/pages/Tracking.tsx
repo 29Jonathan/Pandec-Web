@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Container, Row, Col, Card, Form, Button, Table, Modal, Alert, Badge } from 'react-bootstrap'
 import { useLocation, useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { supabase } from '../lib/supabase'
+import { useOrders } from '../hooks/useOrders'
 
 const API = import.meta.env.VITE_API_BASE_URL as string
 
@@ -24,95 +25,95 @@ type Order = {
 }
 
 export function Tracking() {
-  const [orders, setOrders] = useState<Order[]>([])
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [showNotFound, setShowNotFound] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [searchLoading, setSearchLoading] = useState(false)
   const [updatingStatus, setUpdatingStatus] = useState<number | null>(null)
   const location = useLocation()
   const navigate = useNavigate()
+  
+  // Use centralized orders hook
+  const { orders, loading, error, updateOrderStatus, clearError } = useOrders()
+
+  // Debounced search function
+  const debouncedSearch = useCallback(
+    async (query: string) => {
+      if (!query.trim()) return
+
+      setSearchLoading(true)
+      try {
+        const { data: session } = await supabase.auth.getSession()
+        if (!session.session) {
+          // Use the hook's error handling
+          return
+        }
+
+        const headers = { Authorization: `Bearer ${session.session.access_token}` }
+        const response = await axios.get(`${API}/api/orders/`, { 
+          headers, 
+          params: { order_id: query.trim() } 
+        })
+        
+        if (response.data.length > 0) {
+          setSelectedOrder(response.data[0])
+          setShowModal(true)
+        } else {
+          setShowNotFound(true)
+        }
+      } catch (err: any) {
+        // Search errors are handled locally, not through the hook
+        console.error('Search failed:', err)
+      } finally {
+        setSearchLoading(false)
+      }
+    },
+    []
+  )
+
+  // Debounced search effect
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchQuery.trim()) {
+        debouncedSearch(searchQuery)
+      }
+    }, 500) // 500ms delay
+
+    return () => clearTimeout(timeoutId)
+  }, [searchQuery, debouncedSearch])
 
   useEffect(() => {
-    loadOrders()
-    
     // Check if we should show an order modal (e.g., from notification click)
     if (location.state?.orderId && location.state?.showModal) {
+      // We'll handle this after orders are loaded
+      setShowModal(true)
+      // Clear the state to prevent showing modal on refresh
+      navigate(location.pathname, { replace: true })
+    }
+  }, [location.state, navigate, location.pathname])
+
+  // Handle showing modal after orders are loaded
+  useEffect(() => {
+    if (location.state?.orderId && showModal && orders.length > 0) {
       const order = orders.find(o => o.order_id === location.state.orderId)
       if (order) {
         setSelectedOrder(order)
-        setShowModal(true)
-        // Clear the state to prevent showing modal on refresh
-        navigate(location.pathname, { replace: true })
       }
     }
-  }, [orders, location.state, navigate, location.pathname])
+  }, [orders, location.state?.orderId, showModal])
 
-  const loadOrders = async () => {
-    try {
-      const { data: session } = await supabase.auth.getSession()
-      if (!session.session) {
-        setError('Please login to view orders')
-        setLoading(false)
-        return
-      }
-
-      const headers = { Authorization: `Bearer ${session.session.access_token}` }
-      const response = await axios.get(`${API}/api/orders/`, { headers })
-      setOrders(response.data)
-    } catch (err: any) {
-      setError(err.message || 'Failed to load orders')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleSearch = async (e: React.FormEvent) => {
+  const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!searchQuery.trim()) return
-
-    try {
-      const { data: session } = await supabase.auth.getSession()
-      if (!session.session) {
-        setError('Please login to search orders')
-        return
-      }
-
-      const headers = { Authorization: `Bearer ${session.session.access_token}` }
-      const response = await axios.get(`${API}/api/orders/`, { 
-        headers, 
-        params: { order_id: searchQuery.trim() } 
-      })
-      
-      if (response.data.length > 0) {
-        setSelectedOrder(response.data[0])
-        setShowModal(true)
-      } else {
-        setShowNotFound(true)
-      }
-    } catch (err: any) {
-      setError(err.message || 'Search failed')
-    }
+    // Search is now handled by the debounced effect
   }
 
   const handleStatusChange = async (orderId: number, newStatus: string) => {
     setUpdatingStatus(orderId)
     try {
-      const { data: session } = await supabase.auth.getSession()
-      if (!session.session) {
-        setError('Please login to update order status')
-        return
-      }
-
-      const headers = { Authorization: `Bearer ${session.session.access_token}` }
-      await axios.patch(`${API}/api/orders/${orderId}/status/`, { status: newStatus }, { headers })
-      
-      // Reload orders to get updated data
-      await loadOrders()
+      await updateOrderStatus(orderId, newStatus)
     } catch (err: any) {
-      setError(err.response?.data?.detail || err.message || 'Failed to update status')
+      // Error is handled by the hook
     } finally {
       setUpdatingStatus(null)
     }
@@ -148,7 +149,7 @@ export function Tracking() {
       </Row>
 
       {error && (
-        <Alert variant="danger" dismissible onClose={() => setError('')}>
+        <Alert variant="danger" dismissible onClose={clearError}>
           {error}
         </Alert>
       )}
@@ -163,15 +164,15 @@ export function Tracking() {
                   <Col>
                     <Form.Control
                       type="text"
-                      placeholder="Enter Order ID"
+                      placeholder="Enter Order ID to search automatically..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                     />
-                  </Col>
-                  <Col xs="auto">
-                    <Button type="submit" variant="primary">
-                      Search
-                    </Button>
+                    {searchLoading && (
+                      <small className="text-muted mt-1 d-block">
+                        Searching...
+                      </small>
+                    )}
                   </Col>
                 </Row>
               </Form>
