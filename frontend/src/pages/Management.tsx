@@ -83,7 +83,7 @@ export function Management() {
   }
 
   return (
-    <Container fluid>
+    <div>
       <Row className="mb-4">
         <Col>
           <h2 className="mb-3">Order Management</h2>
@@ -296,6 +296,6 @@ export function Management() {
           </Card>
         </Col>
       </Row>
-    </Container>
+    </div>
   )
 }

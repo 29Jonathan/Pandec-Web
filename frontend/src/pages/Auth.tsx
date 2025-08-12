@@ -92,7 +92,7 @@ export function Auth() {
   }
 
   return (
-    <Container fluid>
+    <div>
       <Row className="justify-content-center">
         <Col md={8} lg={6} xl={5}>
           <div className="text-center mb-4">
@@ -258,6 +258,6 @@ export function Auth() {
           </Card>
         </Col>
       </Row>
-    </Container>
+    </div>
   )
 }

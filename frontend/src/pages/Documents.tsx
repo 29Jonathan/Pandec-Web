@@ -119,18 +119,16 @@ export function Documents() {
 
   if (loading) {
     return (
-      <Container fluid>
-        <div className="text-center py-5">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
+      <div className="text-center py-5">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
         </div>
-      </Container>
+      </div>
     )
   }
 
   return (
-    <Container fluid>
+    <div>
       <Row className="mb-4">
         <Col>
           <h2 className="mb-3">Documents</h2>
@@ -254,6 +252,6 @@ export function Documents() {
           </div>
         </Card.Body>
       </Card>
-    </Container>
+    </div>
   )
 }

@@ -5,13 +5,14 @@ import { Documents } from './pages/Documents'
 import { Management } from './pages/Management'
 import { Auth } from './pages/Auth'
 import 'bootstrap/dist/css/bootstrap.min.css'
+import './App.css'
 
 function App() {
   return (
     <BrowserRouter>
       <div className="min-vh-100 bg-light">
         <Navigation />
-        <div className="py-4">
+        <div className="page-content">
           <Routes>
             <Route path="/" element={<Navigate to="/tracking" replace />} />
             <Route path="/tracking" element={<Tracking />} />

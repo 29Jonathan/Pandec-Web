@@ -2,10 +2,30 @@ import { useState, useEffect } from 'react'
 import { Navbar, Container, Nav, Button, Badge } from 'react-bootstrap'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { NotificationDropdown } from './NotificationDropdown'
+
+type Order = {
+  id: number
+  order_id: string
+  factory_id: string
+  customer_id: string
+  ship_name: string
+  departure_date: string
+  arrival_date: string
+  type: string
+  price: string
+  amount: number
+  weight: string
+  status: string
+  created_by: string
+  created_at: string
+}
 
 export function Navigation() {
   const [user, setUser] = useState<any>(null)
   const [username, setUsername] = useState<string>('')
+  const [showOrderModal, setShowOrderModal] = useState(false)
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const location = useLocation()
   const navigate = useNavigate()
 
@@ -36,6 +56,16 @@ export function Navigation() {
   const handleLogout = async () => {
     await supabase.auth.signOut()
     navigate('/auth')
+  }
+
+  const handleOrderClick = (order: Order) => {
+    // Navigate to tracking page with order data in state
+    navigate('/tracking', { 
+      state: { 
+        orderId: order.order_id,
+        showModal: true 
+      } 
+    })
   }
 
   if (!user) {
@@ -90,9 +120,13 @@ export function Navigation() {
             </Nav.Link>
           </Nav>
           <div className="d-flex align-items-center gap-3">
-            <Badge bg="info" text="dark" className="px-3 py-2">
-              {username}
-            </Badge>
+            <NotificationDropdown onOrderClick={handleOrderClick} />
+            <div className="d-flex align-items-center gap-2">
+              <small className="text-muted">Welcome,</small>
+              <Badge bg="info" text="dark" className="px-2 py-1">
+                {username}
+              </Badge>
+            </div>
             <Button variant="outline-secondary" size="sm" onClick={handleLogout}>
               Logout
             </Button>

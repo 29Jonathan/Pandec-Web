@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Container, Row, Col, Card, Form, Button, Table, Modal, Alert, Badge } from 'react-bootstrap'
+import { useLocation, useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { supabase } from '../lib/supabase'
 
@@ -19,6 +20,7 @@ type Order = {
   weight: string
   status: string
   created_by: string
+  created_at: string
 }
 
 export function Tracking() {
@@ -30,10 +32,23 @@ export function Tracking() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [updatingStatus, setUpdatingStatus] = useState<number | null>(null)
+  const location = useLocation()
+  const navigate = useNavigate()
 
   useEffect(() => {
     loadOrders()
-  }, [])
+    
+    // Check if we should show an order modal (e.g., from notification click)
+    if (location.state?.orderId && location.state?.showModal) {
+      const order = orders.find(o => o.order_id === location.state.orderId)
+      if (order) {
+        setSelectedOrder(order)
+        setShowModal(true)
+        // Clear the state to prevent showing modal on refresh
+        navigate(location.pathname, { replace: true })
+      }
+    }
+  }, [orders, location.state, navigate, location.pathname])
 
   const loadOrders = async () => {
     try {
@@ -92,7 +107,7 @@ export function Tracking() {
       }
 
       const headers = { Authorization: `Bearer ${session.session.access_token}` }
-      await axios.patch(`${API}/api/orders/${orderId}/status`, { status: newStatus }, { headers })
+      await axios.patch(`${API}/api/orders/${orderId}/status/`, { status: newStatus }, { headers })
       
       // Reload orders to get updated data
       await loadOrders()
@@ -115,18 +130,16 @@ export function Tracking() {
 
   if (loading) {
     return (
-      <Container fluid>
-        <div className="text-center py-5">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
+      <div className="text-center py-5">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
         </div>
-      </Container>
+      </div>
     )
   }
 
   return (
-    <Container fluid>
+    <div>
       <Row className="mb-4">
         <Col>
           <h2 className="mb-3">Order Tracking</h2>
@@ -183,50 +196,52 @@ export function Tracking() {
                   <th>Factory ID</th>
                   <th>Customer ID</th>
                   <th>Ship Name</th>
+                  <th>Departure Date</th>
+                  <th>Arrival Date</th>
                   <th>Type</th>
                   <th>Price</th>
+                  <th>Amount</th>
+                  <th>Weight</th>
                   <th>Status</th>
-                  <th>Actions</th>
+                  <th>Created By</th>
+                  <th>Created At</th>
                 </tr>
               </thead>
               <tbody>
                 {orders.map((order) => (
-                  <tr key={order.id} style={{ cursor: 'pointer' }} onClick={() => {
+                  <tr key={order.id} onClick={() => {
                     setSelectedOrder(order)
                     setShowModal(true)
-                  }}>
-                    <td className="fw-medium">{order.order_id}</td>
+                  }} style={{ cursor: 'pointer' }}>
+                    <td>{order.order_id}</td>
                     <td>{order.factory_id}</td>
                     <td>{order.customer_id}</td>
                     <td>{order.ship_name}</td>
-                    <td>
-                      <Badge bg="info" text="dark">{order.type}</Badge>
-                    </td>
+                    <td>{new Date(order.departure_date).toLocaleDateString()}</td>
+                    <td>{new Date(order.arrival_date).toLocaleDateString()}</td>
+                    <td>{order.type}</td>
                     <td>${order.price}</td>
+                    <td>{order.amount}</td>
+                    <td>{order.weight} kg</td>
                     <td>
-                      <Badge bg={getStatusBadgeColor(order.status)}>
-                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                      <Badge 
+                        bg={
+                          order.status === 'preparing' ? 'warning' :
+                          order.status === 'shipping' ? 'info' :
+                          order.status === 'arrived' ? 'success' :
+                          'secondary'
+                        }
+                      >
+                        {order.status}
                       </Badge>
                     </td>
-                    <td>
-                      <Form.Select
-                        size="sm"
-                        value={order.status}
-                        onChange={(e) => handleStatusChange(order.id, e.target.value)}
-                        disabled={updatingStatus === order.id}
-                        style={{ width: 'auto', minWidth: '100px' }}
-                      >
-                        <option value="preparing">Preparing</option>
-                        <option value="shipping">Shipping</option>
-                        <option value="arrived">Arrived</option>
-                        <option value="complete">Complete</option>
-                      </Form.Select>
-                    </td>
+                    <td>{order.created_by}</td>
+                    <td>{new Date(order.created_at).toLocaleDateString()}</td>
                   </tr>
                 ))}
                 {orders.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="text-center text-muted py-4">
+                    <td colSpan={13} className="text-center text-muted py-4">
                       No orders found
                     </td>
                   </tr>
@@ -244,60 +259,43 @@ export function Tracking() {
         </Modal.Header>
         <Modal.Body>
           {selectedOrder && (
-            <Row className="g-3">
-              <Col md={6}>
-                <div className="mb-3">
-                  <strong>Order ID:</strong>
-                  <div className="text-muted">{selectedOrder.order_id}</div>
-                </div>
-                <div className="mb-3">
-                  <strong>Factory ID:</strong>
-                  <div className="text-muted">{selectedOrder.factory_id}</div>
-                </div>
-                <div className="mb-3">
-                  <strong>Customer ID:</strong>
-                  <div className="text-muted">{selectedOrder.customer_id}</div>
-                </div>
-                <div className="mb-3">
-                  <strong>Ship Name:</strong>
-                  <div className="text-muted">{selectedOrder.ship_name}</div>
-                </div>
-              </Col>
-              <Col md={6}>
-                <div className="mb-3">
-                  <strong>Departure Date:</strong>
-                  <div className="text-muted">{selectedOrder.departure_date}</div>
-                </div>
-                <div className="mb-3">
-                  <strong>Arrival Date:</strong>
-                  <div className="text-muted">{selectedOrder.arrival_date}</div>
-                </div>
-                <div className="mb-3">
-                  <strong>Type:</strong>
-                  <div><Badge bg="info" text="dark">{selectedOrder.type}</Badge></div>
-                </div>
-                <div className="mb-3">
-                  <strong>Price:</strong>
-                  <div className="text-muted">${selectedOrder.price}</div>
-                </div>
-                <div className="mb-3">
-                  <strong>Amount:</strong>
-                  <div className="text-muted">{selectedOrder.amount}</div>
-                </div>
-                <div className="mb-3">
-                  <strong>Weight:</strong>
-                  <div className="text-muted">{selectedOrder.weight}</div>
-                </div>
-                <div className="mb-3">
-                  <strong>Status:</strong>
-                  <div>
-                    <Badge bg={getStatusBadgeColor(selectedOrder.status)}>
-                      {selectedOrder.status.charAt(0).toUpperCase() + selectedOrder.status.slice(1)}
-                    </Badge>
-                  </div>
-                </div>
-              </Col>
-            </Row>
+            <div>
+              <Row>
+                <Col md={6}>
+                  <p><strong>Order ID:</strong> {selectedOrder.order_id}</p>
+                  <p><strong>Factory ID:</strong> {selectedOrder.factory_id}</p>
+                  <p><strong>Customer ID:</strong> {selectedOrder.customer_id}</p>
+                  <p><strong>Ship Name:</strong> {selectedOrder.ship_name}</p>
+                  <p><strong>Departure Date:</strong> {new Date(selectedOrder.departure_date).toLocaleDateString()}</p>
+                  <p><strong>Arrival Date:</strong> {new Date(selectedOrder.arrival_date).toLocaleDateString()}</p>
+                </Col>
+                <Col md={6}>
+                  <p><strong>Type:</strong> {selectedOrder.type}</p>
+                  <p><strong>Price:</strong> ${selectedOrder.price}</p>
+                  <p><strong>Amount:</strong> {selectedOrder.amount}</p>
+                  <p><strong>Weight:</strong> {selectedOrder.weight} kg</p>
+                  <p><strong>Created By:</strong> {selectedOrder.created_by}</p>
+                  <p><strong>Created At:</strong> {new Date(selectedOrder.created_at).toLocaleDateString()}</p>
+                </Col>
+              </Row>
+              <Row className="mt-3">
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label><strong>Status:</strong></Form.Label>
+                    <Form.Select 
+                      value={selectedOrder.status} 
+                      onChange={(e) => handleStatusChange(selectedOrder.id, e.target.value)}
+                      disabled={updatingStatus === selectedOrder.id}
+                    >
+                      <option value="preparing">Preparing</option>
+                      <option value="shipping">Shipping</option>
+                      <option value="arrived">Arrived</option>
+                      <option value="complete">Complete</option>
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+              </Row>
+            </div>
           )}
         </Modal.Body>
         <Modal.Footer>
@@ -327,6 +325,6 @@ export function Tracking() {
           </Button>
         </Modal.Footer>
       </Modal>
-    </Container>
+    </div>
   )
 }

@@ -3,8 +3,8 @@ from rest_framework.decorators import action, api_view, permission_classes, pars
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.conf import settings
-from .models import Order
-from .serializers import OrderSerializer
+from .models import Order, Notification
+from .serializers import OrderSerializer, NotificationSerializer
 from .supabase_client import get_supabase_client
 import tempfile
 import os
@@ -154,6 +154,7 @@ def update_order_status(request, order_id):
         if not request.user.is_admin and order.created_by != request.user.email:
             return Response({'detail': 'Not authorized'}, status=403)
         
+        old_status = order.status
         new_status = request.data.get('status')
         if new_status not in ['preparing', 'shipping', 'arrived', 'complete']:
             return Response({'detail': 'Invalid status'}, status=400)
@@ -161,6 +162,55 @@ def update_order_status(request, order_id):
         order.status = new_status
         order.save()
         
+        # Create notification for the order owner if status changed
+        if old_status != new_status and order.created_by != request.user.email:
+            message = f"Order {order.order_id} status changed from {old_status} to {new_status}"
+            Notification.objects.create(
+                user_email=order.created_by,
+                order_id=order.order_id,
+                order_status=new_status,
+                message=message
+            )
+        
         return Response({'status': order.status})
     except Order.DoesNotExist:
         return Response({'detail': 'Order not found'}, status=404)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def get_notifications(request):
+    """Get all notifications for the current user"""
+    notifications = Notification.objects.filter(
+        user_email=request.user.email
+    ).order_by('-created_at')
+    
+    serializer = NotificationSerializer(notifications, many=True)
+    return Response(serializer.data)
+
+
+@api_view(['PATCH'])
+@permission_classes([permissions.IsAuthenticated])
+def mark_notification_read(request, notification_id):
+    """Mark a notification as read"""
+    try:
+        notification = Notification.objects.get(
+            id=notification_id,
+            user_email=request.user.email
+        )
+        notification.is_read = True
+        notification.save()
+        return Response({'success': True})
+    except Notification.DoesNotExist:
+        return Response({'detail': 'Notification not found'}, status=404)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def get_unread_count(request):
+    """Get count of unread notifications"""
+    count = Notification.objects.filter(
+        user_email=request.user.email,
+        is_read=False
+    ).count()
+    return Response({'count': count})
