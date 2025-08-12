@@ -162,15 +162,29 @@ def update_order_status(request, order_id):
         order.status = new_status
         order.save()
         
-        # Create notification for the order owner if status changed
-        if old_status != new_status and order.created_by != request.user.email:
+        # Create notifications for order status changes
+        if old_status != new_status:
             message = f"Order {order.order_id} status changed from {old_status} to {new_status}"
-            Notification.objects.create(
-                user_email=order.created_by,
-                order_id=order.order_id,
-                order_status=new_status,
-                message=message
-            )
+            
+            # Notify the order owner (if different from the person making the change)
+            if order.created_by != request.user.email:
+                Notification.objects.create(
+                    user_email=order.created_by,
+                    order_id=order.order_id,
+                    order_status=new_status,
+                    message=message
+                )
+            
+            # Notify admin users (if the person making the change is not admin)
+            if not request.user.is_admin:
+                admin_email = getattr(settings, 'ADMIN_EMAIL', '')
+                if admin_email and admin_email != request.user.email:
+                    Notification.objects.create(
+                        user_email=admin_email,
+                        order_id=order.order_id,
+                        order_status=new_status,
+                        message=f"Admin notification: {message}"
+                    )
         
         return Response({'status': order.status})
     except Order.DoesNotExist:
@@ -203,6 +217,14 @@ def mark_notification_read(request, notification_id):
         return Response({'success': True})
     except Notification.DoesNotExist:
         return Response({'detail': 'Notification not found'}, status=404)
+
+
+@api_view(['PATCH'])
+@permission_classes([permissions.IsAuthenticated])
+def mark_all_notifications_read(request):
+    """Mark all notifications as read for current user"""
+    Notification.objects.filter(user_email=request.user.email, is_read=False).update(is_read=True)
+    return Response({'success': True})
 
 
 @api_view(['GET'])

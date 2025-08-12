@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import OrderViewSet, me, upload_file, download_url, update_order_status, get_notifications, mark_notification_read, get_unread_count
+from .views import OrderViewSet, me, upload_file, download_url, update_order_status, get_notifications, mark_notification_read, get_unread_count, mark_all_notifications_read
 
 router = DefaultRouter()
 router.register(r'orders', OrderViewSet, basename='order')
@@ -14,6 +14,7 @@ urlpatterns = [
     path('notifications', get_notifications),
     path('notifications/<int:notification_id>/read', mark_notification_read),
     path('notifications/unread-count', get_unread_count),
+    path('notifications/read-all', mark_all_notifications_read),
 ]
 
 

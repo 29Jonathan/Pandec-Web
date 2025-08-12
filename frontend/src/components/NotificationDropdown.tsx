@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Dropdown, Badge, ListGroup, Button } from 'react-bootstrap'
-import { Bell, Clock } from 'react-bootstrap-icons'
+import { Bell, Clock, ArrowClockwise } from 'react-bootstrap-icons'
 import axios from 'axios'
 import { supabase } from '../lib/supabase'
 
@@ -41,21 +41,11 @@ export function NotificationDropdown({ onOrderClick }: NotificationDropdownProps
   const [unreadCount, setUnreadCount] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [show, setShow] = useState(false)
+  const [lastRefresh, setLastRefresh] = useState<number>(Date.now())
 
-  useEffect(() => {
-    loadNotifications()
-    loadUnreadCount()
-    
-    // Refresh notifications every 30 seconds
-    const interval = setInterval(() => {
-      loadNotifications()
-      loadUnreadCount()
-    }, 30000)
-    
-    return () => clearInterval(interval)
-  }, [])
-
-  const loadNotifications = async () => {
+  // Memoize the load functions to prevent unnecessary re-renders
+  const loadNotifications = useCallback(async () => {
     try {
       const { data: session } = await supabase.auth.getSession()
       if (!session.session) return
@@ -63,12 +53,13 @@ export function NotificationDropdown({ onOrderClick }: NotificationDropdownProps
       const headers = { Authorization: `Bearer ${session.session.access_token}` }
       const response = await axios.get(`${API}/api/notifications`, { headers })
       setNotifications(response.data)
+      setLastRefresh(Date.now())
     } catch (err: any) {
       console.error('Failed to load notifications:', err)
     }
-  }
+  }, [])
 
-  const loadUnreadCount = async () => {
+  const loadUnreadCount = useCallback(async () => {
     try {
       const { data: session } = await supabase.auth.getSession()
       if (!session.session) return
@@ -79,7 +70,26 @@ export function NotificationDropdown({ onOrderClick }: NotificationDropdownProps
     } catch (err: any) {
       console.error('Failed to load unread count:', err)
     }
-  }
+  }, [])
+
+  // Initial load
+  useEffect(() => {
+    loadNotifications()
+    loadUnreadCount()
+  }, [loadNotifications, loadUnreadCount])
+
+  // Reduced polling frequency - every 2 minutes instead of 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Only refresh if the dropdown is closed (to avoid interrupting user interaction)
+      if (!show) {
+        loadNotifications()
+        loadUnreadCount()
+      }
+    }, 120000) // 2 minutes
+    
+    return () => clearInterval(interval)
+  }, [show, loadNotifications, loadUnreadCount])
 
   const markAsRead = async (notificationId: number) => {
     try {
@@ -89,7 +99,6 @@ export function NotificationDropdown({ onOrderClick }: NotificationDropdownProps
       const headers = { Authorization: `Bearer ${session.session.access_token}` }
       await axios.patch(`${API}/api/notifications/${notificationId}/read`, {}, { headers })
       
-      // Update local state
       setNotifications(prev => 
         prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n)
       )
@@ -99,12 +108,45 @@ export function NotificationDropdown({ onOrderClick }: NotificationDropdownProps
     }
   }
 
+  const markAllAsRead = async () => {
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      if (!session.session) return
+
+      const headers = { Authorization: `Bearer ${session.session.access_token}` }
+      await axios.patch(`${API}/api/notifications/read-all`, {}, { headers })
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })))
+      setUnreadCount(0)
+    } catch (err: any) {
+      console.error('Failed to mark all as read:', err)
+    }
+  }
+
+  const handleToggle = async (nextShow: boolean, _event: any, _metadata: any) => {
+    setShow(nextShow)
+    if (nextShow) {
+      // Refresh notifications when opening the dropdown
+      await loadNotifications()
+      await loadUnreadCount()
+      
+      // Mark all as read when opening
+      if (unreadCount > 0) {
+        await markAllAsRead()
+      }
+    }
+  }
+
+  const handleManualRefresh = async () => {
+    setLoading(true)
+    await Promise.all([loadNotifications(), loadUnreadCount()])
+    setLoading(false)
+  }
+
   const handleNotificationClick = async (notification: Notification) => {
     if (!notification.is_read) {
       await markAsRead(notification.id)
     }
     
-    // Fetch order details and show them
     try {
       const { data: session } = await supabase.auth.getSession()
       if (!session.session) return
@@ -149,7 +191,7 @@ export function NotificationDropdown({ onOrderClick }: NotificationDropdownProps
   }
 
   return (
-    <Dropdown align="end">
+    <Dropdown align="end" onToggle={handleToggle} show={show}>
       <Dropdown.Toggle variant="outline-secondary" className="position-relative">
         <Bell size={20} />
         {unreadCount > 0 && (
@@ -166,11 +208,22 @@ export function NotificationDropdown({ onOrderClick }: NotificationDropdownProps
       <Dropdown.Menu style={{ width: '350px', maxHeight: '400px', overflowY: 'auto' }}>
         <Dropdown.Header className="d-flex justify-content-between align-items-center">
           <span>Notifications</span>
-          {unreadCount > 0 && (
-            <Badge bg="danger" className="ms-2">
-              {unreadCount} new
-            </Badge>
-          )}
+          <div className="d-flex align-items-center gap-2">
+            {unreadCount > 0 && (
+              <Badge bg="danger" className="ms-2">
+                {unreadCount} new
+              </Badge>
+            )}
+            <Button
+              variant="outline-secondary"
+              size="sm"
+              onClick={handleManualRefresh}
+              disabled={loading}
+              className="p-1"
+            >
+              <ArrowClockwise size={14} className={loading ? 'spinner-border spinner-border-sm' : ''} />
+            </Button>
+          </div>
         </Dropdown.Header>
         
         {notifications.length === 0 ? (
@@ -209,18 +262,27 @@ export function NotificationDropdown({ onOrderClick }: NotificationDropdownProps
         )}
         
         {notifications.length > 0 && (
-          <Dropdown.Divider />
-          <div className="px-3 py-2">
-            <Button 
-              variant="outline-secondary" 
-              size="sm" 
-              className="w-100"
-              onClick={() => window.location.href = '/tracking'}
-            >
-              View All Orders
-            </Button>
-          </div>
+          <>
+            <Dropdown.Divider />
+            <div className="px-3 py-2">
+              <Button 
+                variant="outline-secondary" 
+                size="sm" 
+                className="w-100"
+                onClick={() => window.location.href = '/tracking'}
+              >
+                View All Orders
+              </Button>
+            </div>
+          </>
         )}
+        
+        <Dropdown.Divider />
+        <div className="px-3 py-2">
+          <small className="text-muted">
+            Last updated: {formatTime(lastRefresh.toString())}
+          </small>
+        </div>
       </Dropdown.Menu>
     </Dropdown>
   )
