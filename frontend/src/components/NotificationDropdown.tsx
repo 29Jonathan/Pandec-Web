@@ -167,17 +167,13 @@ export function NotificationDropdown({ onOrderClick }: NotificationDropdownProps
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString)
-    const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
-    const diffMins = Math.floor(diffMs / 60000)
-    const diffHours = Math.floor(diffMs / 3600000)
-    const diffDays = Math.floor(diffMs / 86400000)
-
-    if (diffMins < 1) return 'Just now'
-    if (diffMins < 60) return `${diffMins}m ago`
-    if (diffHours < 24) return `${diffHours}h ago`
-    if (diffDays < 7) return `${diffDays}d ago`
-    return date.toLocaleDateString()
+    const month = date.toLocaleDateString('en-US', { month: 'short' })
+    const day = date.getDate()
+    const hour = date.getHours()
+    const ampm = hour >= 12 ? 'PM' : 'AM'
+    const displayHour = hour % 12 || 12
+    
+    return `${month} ${day}, ${displayHour}${ampm}`
   }
 
   const getStatusBadgeColor = (status: string) => {
@@ -265,14 +261,9 @@ export function NotificationDropdown({ onOrderClick }: NotificationDropdownProps
           <>
             <Dropdown.Divider />
             <div className="px-3 py-2">
-              <Button 
-                variant="outline-secondary" 
-                size="sm" 
-                className="w-100"
-                onClick={() => window.location.href = '/tracking'}
-              >
-                View All Orders
-              </Button>
+              <small className="text-muted">
+                Showing the latest 50 notifications.
+              </small>
             </div>
           </>
         )}

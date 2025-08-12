@@ -174,6 +174,8 @@ def update_order_status(request, order_id):
                     order_status=new_status,
                     message=message
                 )
+                # Cleanup old notifications for this user
+                cleanup_old_notifications(order.created_by)
             
             # Notify admin users (if the person making the change is not admin)
             if not request.user.is_admin:
@@ -185,6 +187,8 @@ def update_order_status(request, order_id):
                         order_status=new_status,
                         message=f"Admin notification: {message}"
                     )
+                    # Cleanup old notifications for admin
+                    cleanup_old_notifications(admin_email)
         
         return Response({'status': order.status})
     except Order.DoesNotExist:
@@ -194,10 +198,10 @@ def update_order_status(request, order_id):
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def get_notifications(request):
-    """Get all notifications for the current user"""
+    """Get all notifications for the current user (limited to 50)"""
     notifications = Notification.objects.filter(
         user_email=request.user.email
-    ).order_by('-created_at')
+    ).order_by('-created_at')[:50]
     
     serializer = NotificationSerializer(notifications, many=True)
     return Response(serializer.data)
@@ -225,6 +229,17 @@ def mark_all_notifications_read(request):
     """Mark all notifications as read for current user"""
     Notification.objects.filter(user_email=request.user.email, is_read=False).update(is_read=True)
     return Response({'success': True})
+
+
+def cleanup_old_notifications(user_email: str, max_notifications: int = 50):
+    """Delete old notifications to keep only the latest max_notifications"""
+    notifications = Notification.objects.filter(user_email=user_email).order_by('-created_at')
+    count = notifications.count()
+    
+    if count > max_notifications:
+        # Get IDs of notifications to delete (oldest ones)
+        notifications_to_delete = notifications[max_notifications:].values_list('id', flat=True)
+        Notification.objects.filter(id__in=notifications_to_delete).delete()
 
 
 @api_view(['GET'])
