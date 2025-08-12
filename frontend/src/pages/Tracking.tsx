@@ -17,6 +17,7 @@ type Order = {
   price: string
   amount: number
   weight: string
+  status: string
   created_by: string
 }
 
@@ -28,6 +29,7 @@ export function Tracking() {
   const [showNotFound, setShowNotFound] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [updatingStatus, setUpdatingStatus] = useState<number | null>(null)
 
   useEffect(() => {
     loadOrders()
@@ -77,6 +79,37 @@ export function Tracking() {
       }
     } catch (err: any) {
       setError(err.message || 'Search failed')
+    }
+  }
+
+  const handleStatusChange = async (orderId: number, newStatus: string) => {
+    setUpdatingStatus(orderId)
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      if (!session.session) {
+        setError('Please login to update order status')
+        return
+      }
+
+      const headers = { Authorization: `Bearer ${session.session.access_token}` }
+      await axios.patch(`${API}/api/orders/${orderId}/status`, { status: newStatus }, { headers })
+      
+      // Reload orders to get updated data
+      await loadOrders()
+    } catch (err: any) {
+      setError(err.response?.data?.detail || err.message || 'Failed to update status')
+    } finally {
+      setUpdatingStatus(null)
+    }
+  }
+
+  const getStatusBadgeColor = (status: string) => {
+    switch (status) {
+      case 'preparing': return 'warning'
+      case 'shipping': return 'info'
+      case 'arrived': return 'success'
+      case 'complete': return 'secondary'
+      default: return 'light'
     }
   }
 
@@ -153,6 +186,7 @@ export function Tracking() {
                   <th>Type</th>
                   <th>Price</th>
                   <th>Status</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -170,13 +204,29 @@ export function Tracking() {
                     </td>
                     <td>${order.price}</td>
                     <td>
-                      <Badge bg="success">Active</Badge>
+                      <Badge bg={getStatusBadgeColor(order.status)}>
+                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                      </Badge>
+                    </td>
+                    <td>
+                      <Form.Select
+                        size="sm"
+                        value={order.status}
+                        onChange={(e) => handleStatusChange(order.id, e.target.value)}
+                        disabled={updatingStatus === order.id}
+                        style={{ width: 'auto', minWidth: '100px' }}
+                      >
+                        <option value="preparing">Preparing</option>
+                        <option value="shipping">Shipping</option>
+                        <option value="arrived">Arrived</option>
+                        <option value="complete">Complete</option>
+                      </Form.Select>
                     </td>
                   </tr>
                 ))}
                 {orders.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="text-center text-muted py-4">
+                    <td colSpan={8} className="text-center text-muted py-4">
                       No orders found
                     </td>
                   </tr>
@@ -237,6 +287,14 @@ export function Tracking() {
                 <div className="mb-3">
                   <strong>Weight:</strong>
                   <div className="text-muted">{selectedOrder.weight}</div>
+                </div>
+                <div className="mb-3">
+                  <strong>Status:</strong>
+                  <div>
+                    <Badge bg={getStatusBadgeColor(selectedOrder.status)}>
+                      {selectedOrder.status.charAt(0).toUpperCase() + selectedOrder.status.slice(1)}
+                    </Badge>
+                  </div>
                 </div>
               </Col>
             </Row>

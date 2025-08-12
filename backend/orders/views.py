@@ -143,3 +143,24 @@ def list_files(request):
             'size': size,
         })
     return Response({'files': files})
+
+
+@api_view(['PATCH'])
+@permission_classes([permissions.IsAuthenticated])
+def update_order_status(request, order_id):
+    try:
+        order = Order.objects.get(id=order_id)
+        # Check if user owns the order or is admin
+        if not request.user.is_admin and order.created_by != request.user.email:
+            return Response({'detail': 'Not authorized'}, status=403)
+        
+        new_status = request.data.get('status')
+        if new_status not in ['preparing', 'shipping', 'arrived', 'complete']:
+            return Response({'detail': 'Invalid status'}, status=400)
+        
+        order.status = new_status
+        order.save()
+        
+        return Response({'status': order.status})
+    except Order.DoesNotExist:
+        return Response({'detail': 'Order not found'}, status=404)

@@ -12,6 +12,16 @@ class Order(models.Model):
     price = models.DecimalField(max_digits=12, decimal_places=2)
     amount = models.IntegerField()
     weight = models.DecimalField(max_digits=12, decimal_places=3)
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ('preparing', 'Preparing'),
+            ('shipping', 'Shipping'),
+            ('arrived', 'Arrived'),
+            ('complete', 'Complete'),
+        ],
+        default='preparing'
+    )
     created_by = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
 
