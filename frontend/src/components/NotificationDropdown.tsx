@@ -40,9 +40,7 @@ export function NotificationDropdown({ onOrderClick }: NotificationDropdownProps
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
   const [show, setShow] = useState(false)
-  const [lastRefresh, setLastRefresh] = useState<number>(Date.now())
 
   // Memoize the load functions to prevent unnecessary re-renders
   const loadNotifications = useCallback(async () => {
@@ -53,7 +51,6 @@ export function NotificationDropdown({ onOrderClick }: NotificationDropdownProps
       const headers = { Authorization: `Bearer ${session.session.access_token}` }
       const response = await axios.get(`${API}/api/notifications`, { headers })
       setNotifications(response.data)
-      setLastRefresh(Date.now())
     } catch (err: any) {
       console.error('Failed to load notifications:', err)
     }
@@ -122,16 +119,16 @@ export function NotificationDropdown({ onOrderClick }: NotificationDropdownProps
     }
   }
 
-  const handleToggle = async (nextShow: boolean, _event: any, _metadata: any) => {
+  const handleToggle = (nextShow: boolean) => {
     setShow(nextShow)
     if (nextShow) {
       // Refresh notifications when opening the dropdown
-      await loadNotifications()
-      await loadUnreadCount()
+      loadNotifications()
+      loadUnreadCount()
       
       // Mark all as read when opening
       if (unreadCount > 0) {
-        await markAllAsRead()
+        markAllAsRead()
       }
     }
   }
@@ -238,7 +235,7 @@ export function NotificationDropdown({ onOrderClick }: NotificationDropdownProps
               >
                 <div className="d-flex justify-content-between align-items-start mb-1">
                   <div className="d-flex align-items-center gap-2">
-                    <Badge bg={getStatusBadgeColor(notification.order_status)} size="sm">
+                    <Badge bg={getStatusBadgeColor(notification.order_status)}>
                       {notification.order_status}
                     </Badge>
                     <strong>Order {notification.order_id}</strong>
@@ -267,13 +264,6 @@ export function NotificationDropdown({ onOrderClick }: NotificationDropdownProps
             </div>
           </>
         )}
-        
-        <Dropdown.Divider />
-        <div className="px-3 py-2">
-          <small className="text-muted">
-            Last updated: {formatTime(lastRefresh.toString())}
-          </small>
-        </div>
       </Dropdown.Menu>
     </Dropdown>
   )
