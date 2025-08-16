@@ -4,6 +4,7 @@ import { Tracking } from './pages/Tracking'
 import { Documents } from './pages/Documents'
 import { Management } from './pages/Management'
 import { Auth } from './pages/Auth'
+import { User } from './pages/User'
 import 'bootstrap/dist/css/bootstrap.min.css'
 import './App.css'
 
@@ -19,6 +20,7 @@ function App() {
             <Route path="/documents" element={<Documents />} />
             <Route path="/management" element={<Management />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/user" element={<User />} />
             <Route path="*" element={<Navigate to="/tracking" replace />} />
           </Routes>
         </div>

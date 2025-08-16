@@ -123,7 +123,20 @@ export function Navigation() {
             <NotificationDropdown onOrderClick={handleOrderClick} />
             <div className="d-flex align-items-center gap-2">
               <small className="text-muted">Welcome,</small>
-              <Badge bg="info" text="dark" className="px-2 py-1">
+              <Badge 
+                bg="info" 
+                text="dark" 
+                className="px-2 py-1"
+                style={{ cursor: 'pointer' }}
+                onClick={() => navigate('/user')}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    navigate('/user')
+                  }
+                }}
+              >
                 {username}
               </Badge>
             </div>

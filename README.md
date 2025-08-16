@@ -52,9 +52,6 @@ npm run dev -- --host
 
 Open http://localhost:5173
 
-Usage
-- Register a user with username and role
-- Login; then create/view orders, upload and download files
 
 GitHub
 ```
