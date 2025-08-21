@@ -5,12 +5,43 @@ from .models import Order, Notification, FileUpload
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
     list_display = (
-        'order_id', 'factory_id', 'customer_id', 'ship_name',
-        'departure_date', 'arrival_date', 'type', 'price',
-        'amount', 'weight', 'status', 'created_by', 'created_at'
+        'order_id', 'shipper', 'customer', 'shipment_type', 'logistics_status',
+        'carrier_company', 'departure_date', 'arrival_date', 'created_by', 'created_at'
     )
-    search_fields = ('order_id', 'factory_id', 'customer_id', 'ship_name', 'type', 'created_by')
-    list_filter = ('departure_date', 'arrival_date', 'type', 'status', 'created_at')
+    list_filter = (
+        'shipment_type', 'logistics_status', 'packaging_type', 'freight_terms',
+        'includes_container', 'departure_date', 'arrival_date', 'created_at'
+    )
+    search_fields = (
+        'order_id', 'shipper', 'customer', 'carrier_company', 'carrier_tracking_number',
+        'carrier_bl_number', 'vessel_flight_name', 'created_by'
+    )
+    readonly_fields = ('created_by', 'created_at')
+    
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('order_id', 'shipper', 'shipper_freight_number', 'customer')
+        }),
+        ('Shipment Details', {
+            'fields': ('shipment_type', 'carrier_company', 'carrier_tracking_number', 'carrier_bl_number', 'vessel_flight_name')
+        }),
+        ('Dates and Locations', {
+            'fields': ('loading_date', 'loading_location', 'departure_date', 'port_airport_departure', 'arrival_date', 'port_airport_arrival')
+        }),
+        ('Packaging and Freight', {
+            'fields': ('packaging_type', 'total_packages', 'freight_terms')
+        }),
+        ('Container Information', {
+            'fields': ('includes_container', 'number_of_containers', 'container_1_number', 'container_2_number', 'container_3_number', 'container_4_number', 'container_5_number')
+        }),
+        ('Status and Notes', {
+            'fields': ('logistics_status', 'other_remarks')
+        }),
+        ('Metadata', {
+            'fields': ('created_by', 'created_at'),
+            'classes': ('collapse',)
+        }),
+    )
 
 
 @admin.register(Notification)

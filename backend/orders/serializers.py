@@ -6,9 +6,15 @@ class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = [
-            'id', 'order_id', 'factory_id', 'customer_id', 'ship_name',
-            'departure_date', 'arrival_date', 'type', 'price', 'amount', 'weight',
-            'status', 'created_by', 'created_at'
+            'id', 'order_id', 'shipper', 'shipper_freight_number', 'customer',
+            'shipment_type', 'carrier_company', 'carrier_tracking_number',
+            'carrier_bl_number', 'vessel_flight_name', 'loading_date',
+            'loading_location', 'departure_date', 'port_airport_departure',
+            'arrival_date', 'port_airport_arrival', 'packaging_type',
+            'total_packages', 'freight_terms', 'includes_container',
+            'number_of_containers', 'container_1_number', 'container_2_number',
+            'container_3_number', 'container_4_number', 'container_5_number',
+            'logistics_status', 'other_remarks', 'created_by', 'created_at'
         ]
         read_only_fields = ['id', 'created_by', 'created_at']
 

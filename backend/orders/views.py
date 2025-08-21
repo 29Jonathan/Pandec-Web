@@ -171,17 +171,17 @@ def update_order_status(request, order_id):
         if not request.user.is_admin and order.created_by != request.user.email:
             return Response({'detail': 'Not authorized'}, status=403)
         
-        old_status = order.status
-        new_status = request.data.get('status')
+        old_status = order.logistics_status
+        new_status = request.data.get('logistics_status')
         if new_status not in ['preparing', 'shipping', 'arrived', 'complete']:
             return Response({'detail': 'Invalid status'}, status=400)
         
-        order.status = new_status
+        order.logistics_status = new_status
         order.save()
         
         # Create notifications for order status changes
         if old_status != new_status:
-            message = f"Order {order.order_id} status changed from {old_status} to {new_status}"
+            message = f"Order {order.order_id} logistics status changed from {old_status} to {new_status}"
             
             # Notify the order owner (if different from the person making the change)
             if order.created_by != request.user.email:
@@ -207,7 +207,7 @@ def update_order_status(request, order_id):
                     # Cleanup old notifications for admin
                     cleanup_old_notifications(admin_email)
         
-        return Response({'status': order.status})
+        return Response({'logistics_status': order.logistics_status})
     except Order.DoesNotExist:
         return Response({'detail': 'Order not found'}, status=404)
 

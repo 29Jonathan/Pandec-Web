@@ -10,16 +10,32 @@ const API = import.meta.env.VITE_API_BASE_URL as string
 type Order = {
   id: number
   order_id: string
-  factory_id: string
-  customer_id: string
-  ship_name: string
+  shipper: string
+  shipper_freight_number: string
+  customer: string
+  shipment_type: string
+  carrier_company: string
+  carrier_tracking_number: string
+  carrier_bl_number: string
+  vessel_flight_name: string
+  loading_date: string
+  loading_location: string
   departure_date: string
+  port_airport_departure: string
   arrival_date: string
-  type: string
-  price: string
-  amount: number
-  weight: string
-  status: string
+  port_airport_arrival: string
+  packaging_type: string
+  total_packages: number
+  freight_terms: string
+  includes_container: boolean
+  number_of_containers: number
+  container_1_number: string
+  container_2_number: string
+  container_3_number: string
+  container_4_number: string
+  container_5_number: string
+  logistics_status: string
+  other_remarks: string
   created_by: string
   created_at: string
 }
@@ -129,6 +145,16 @@ export function Tracking() {
     }
   }
 
+  const getShipmentTypeDisplay = (type: string) => {
+    switch (type) {
+      case 'air_freight': return 'Air Freight'
+      case 'sea_freight': return 'Sea Freight'
+      case 'rail_freight': return 'Rail Freight'
+      case 'post': return 'Post'
+      default: return type
+    }
+  }
+
   if (loading) {
     return (
       <div className="text-center py-5">
@@ -144,7 +170,7 @@ export function Tracking() {
       <Row className="mb-4">
         <Col>
           <h2 className="mb-3">Order Tracking</h2>
-          <p className="text-muted">View and search for orders in the system</p>
+          <p className="text-muted">View and search for logistics orders in the system</p>
         </Col>
       </Row>
 
@@ -194,18 +220,10 @@ export function Tracking() {
               <thead className="table-light">
                 <tr>
                   <th>Order ID</th>
-                  <th>Factory ID</th>
-                  <th>Customer ID</th>
-                  <th>Ship Name</th>
-                  <th>Departure Date</th>
-                  <th>Arrival Date</th>
-                  <th>Type</th>
-                  <th>Price</th>
-                  <th>Amount</th>
-                  <th>Weight</th>
-                  <th>Status</th>
-                  <th>Created By</th>
-                  <th>Created At</th>
+                  <th>Shipper</th>
+                  <th>Customer</th>
+                  <th>Shipment Type</th>
+                  <th>Logistics Status</th>
                 </tr>
               </thead>
               <tbody>
@@ -214,35 +232,27 @@ export function Tracking() {
                     setSelectedOrder(order)
                     setShowModal(true)
                   }} style={{ cursor: 'pointer' }}>
-                    <td>{order.order_id}</td>
-                    <td>{order.factory_id}</td>
-                    <td>{order.customer_id}</td>
-                    <td>{order.ship_name}</td>
-                    <td>{new Date(order.departure_date).toLocaleDateString()}</td>
-                    <td>{new Date(order.arrival_date).toLocaleDateString()}</td>
-                    <td>{order.type}</td>
-                    <td>${order.price}</td>
-                    <td>{order.amount}</td>
-                    <td>{order.weight} kg</td>
+                    <td className="fw-medium">{order.order_id}</td>
+                    <td>{order.shipper}</td>
+                    <td>{order.customer}</td>
+                    <td>{getShipmentTypeDisplay(order.shipment_type)}</td>
                     <td>
                       <Badge 
                         bg={
-                          order.status === 'preparing' ? 'warning' :
-                          order.status === 'shipping' ? 'info' :
-                          order.status === 'arrived' ? 'success' :
+                          order.logistics_status === 'preparing' ? 'warning' :
+                          order.logistics_status === 'shipping' ? 'info' :
+                          order.logistics_status === 'arrived' ? 'success' :
                           'secondary'
                         }
                       >
-                        {order.status}
+                        {order.logistics_status}
                       </Badge>
                     </td>
-                    <td>{order.created_by}</td>
-                    <td>{new Date(order.created_at).toLocaleDateString()}</td>
                   </tr>
                 ))}
                 {orders.length === 0 && (
                   <tr>
-                    <td colSpan={13} className="text-center text-muted py-4">
+                    <td colSpan={5} className="text-center text-muted py-4">
                       No orders found
                     </td>
                   </tr>
@@ -254,7 +264,7 @@ export function Tracking() {
       </Card>
 
       {/* Order Details Modal */}
-      <Modal show={showModal} onHide={() => setShowModal(false)} size="lg" centered>
+      <Modal show={showModal} onHide={() => setShowModal(false)} size="xl" centered>
         <Modal.Header closeButton>
           <Modal.Title>Order Details - {selectedOrder?.order_id}</Modal.Title>
         </Modal.Header>
@@ -263,28 +273,72 @@ export function Tracking() {
             <div>
               <Row>
                 <Col md={6}>
+                  <h6 className="text-primary mb-3">Basic Information</h6>
                   <p><strong>Order ID:</strong> {selectedOrder.order_id}</p>
-                  <p><strong>Factory ID:</strong> {selectedOrder.factory_id}</p>
-                  <p><strong>Customer ID:</strong> {selectedOrder.customer_id}</p>
-                  <p><strong>Ship Name:</strong> {selectedOrder.ship_name}</p>
-                  <p><strong>Departure Date:</strong> {new Date(selectedOrder.departure_date).toLocaleDateString()}</p>
-                  <p><strong>Arrival Date:</strong> {new Date(selectedOrder.arrival_date).toLocaleDateString()}</p>
+                  <p><strong>Shipper:</strong> {selectedOrder.shipper}</p>
+                  <p><strong>Shipper's Freight Number:</strong> {selectedOrder.shipper_freight_number || 'N/A'}</p>
+                  <p><strong>Customer:</strong> {selectedOrder.customer}</p>
+                  <p><strong>Shipment Type:</strong> {getShipmentTypeDisplay(selectedOrder.shipment_type)}</p>
+                  
+                  <h6 className="text-primary mb-3 mt-4">Carrier Information</h6>
+                  <p><strong>Carrier Company:</strong> {selectedOrder.carrier_company}</p>
+                  <p><strong>Carrier Tracking Number:</strong> {selectedOrder.carrier_tracking_number || 'N/A'}</p>
+                  <p><strong>Carrier BL Number:</strong> {selectedOrder.carrier_bl_number || 'N/A'}</p>
+                  <p><strong>Vessel/Flight Name:</strong> {selectedOrder.vessel_flight_name || 'N/A'}</p>
                 </Col>
+                
                 <Col md={6}>
-                  <p><strong>Type:</strong> {selectedOrder.type}</p>
-                  <p><strong>Price:</strong> ${selectedOrder.price}</p>
-                  <p><strong>Amount:</strong> {selectedOrder.amount}</p>
-                  <p><strong>Weight:</strong> {selectedOrder.weight} kg</p>
+                  <h6 className="text-primary mb-3">Dates and Locations</h6>
+                  <p><strong>Loading Date:</strong> {new Date(selectedOrder.loading_date).toLocaleDateString()}</p>
+                  <p><strong>Loading Location:</strong> {selectedOrder.loading_location || 'N/A'}</p>
+                  <p><strong>Departure Date:</strong> {new Date(selectedOrder.departure_date).toLocaleDateString()}</p>
+                  <p><strong>Port/Airport of Departure:</strong> {selectedOrder.port_airport_departure || 'N/A'}</p>
+                  <p><strong>Arrival Date:</strong> {new Date(selectedOrder.arrival_date).toLocaleDateString()}</p>
+                  <p><strong>Port/Airport of Arrival:</strong> {selectedOrder.port_airport_arrival || 'N/A'}</p>
+                  
+                  <h6 className="text-primary mb-3 mt-4">Packaging and Freight</h6>
+                  <p><strong>Packaging Type:</strong> {selectedOrder.packaging_type}</p>
+                  <p><strong>Total Packages:</strong> {selectedOrder.total_packages}</p>
+                  <p><strong>Freight Terms:</strong> {selectedOrder.freight_terms.toUpperCase()}</p>
+                </Col>
+              </Row>
+
+              {selectedOrder.includes_container && (
+                <Row className="mt-3">
+                  <Col xs={12}>
+                    <h6 className="text-primary mb-3">Container Information</h6>
+                    <p><strong>Number of Containers:</strong> {selectedOrder.number_of_containers}</p>
+                    {selectedOrder.container_1_number && <p><strong>Container 1:</strong> {selectedOrder.container_1_number}</p>}
+                    {selectedOrder.container_2_number && <p><strong>Container 2:</strong> {selectedOrder.container_2_number}</p>}
+                    {selectedOrder.container_3_number && <p><strong>Container 3:</strong> {selectedOrder.container_3_number}</p>}
+                    {selectedOrder.container_4_number && <p><strong>Container 4:</strong> {selectedOrder.container_4_number}</p>}
+                    {selectedOrder.container_5_number && <p><strong>Container 5:</strong> {selectedOrder.container_5_number}</p>}
+                  </Col>
+                </Row>
+              )}
+
+              {selectedOrder.other_remarks && (
+                <Row className="mt-3">
+                  <Col xs={12}>
+                    <h6 className="text-primary mb-3">Other Remarks</h6>
+                    <p>{selectedOrder.other_remarks}</p>
+                  </Col>
+                </Row>
+              )}
+
+              <Row className="mt-3">
+                <Col md={6}>
+                  <h6 className="text-primary mb-3">Status and Metadata</h6>
                   <p><strong>Created By:</strong> {selectedOrder.created_by}</p>
                   <p><strong>Created At:</strong> {new Date(selectedOrder.created_at).toLocaleDateString()}</p>
                 </Col>
-              </Row>
-              <Row className="mt-3">
+                
                 <Col md={6}>
+                  <h6 className="text-primary mb-3">Update Logistics Status</h6>
                   <Form.Group>
-                    <Form.Label><strong>Status:</strong></Form.Label>
+                    <Form.Label><strong>Logistics Status:</strong></Form.Label>
                     <Form.Select 
-                      value={selectedOrder.status} 
+                      value={selectedOrder.logistics_status} 
                       onChange={(e) => handleStatusChange(selectedOrder.id, e.target.value)}
                       disabled={updatingStatus === selectedOrder.id}
                     >

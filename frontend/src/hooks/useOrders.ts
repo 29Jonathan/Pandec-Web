@@ -7,16 +7,32 @@ const API = import.meta.env.VITE_API_BASE_URL as string
 type Order = {
   id: number
   order_id: string
-  factory_id: string
-  customer_id: string
-  ship_name: string
+  shipper: string
+  shipper_freight_number: string
+  customer: string
+  shipment_type: string
+  carrier_company: string
+  carrier_tracking_number: string
+  carrier_bl_number: string
+  vessel_flight_name: string
+  loading_date: string
+  loading_location: string
   departure_date: string
+  port_airport_departure: string
   arrival_date: string
-  type: string
-  price: string
-  amount: number
-  weight: string
-  status: string
+  port_airport_arrival: string
+  packaging_type: string
+  total_packages: number
+  freight_terms: string
+  includes_container: boolean
+  number_of_containers: number
+  container_1_number: string
+  container_2_number: string
+  container_3_number: string
+  container_4_number: string
+  container_5_number: string
+  logistics_status: string
+  other_remarks: string
   created_by: string
   created_at: string
 }
@@ -89,7 +105,7 @@ export function useOrders() {
       }
 
       const headers = { Authorization: `Bearer ${session.session.access_token}` }
-      await axios.patch(`${API}/api/orders/${orderId}/status/`, { status: newStatus }, { headers })
+      await axios.patch(`${API}/api/orders/${orderId}/status/`, { logistics_status: newStatus }, { headers })
       
       // Force refresh orders to get updated data
       await loadOrders(true)
