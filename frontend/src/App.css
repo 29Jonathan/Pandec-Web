@@ -32,6 +32,21 @@
   font-weight: 600;
 }
 
+/* Username badge styling */
+.username-badge {
+  font-size: 1rem;        /* text bigger */
+  padding: 0.5rem 1rem;   /* bigger area */
+  border-radius: 8px;     /* rounded look */
+  cursor: pointer;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.username-badge:hover {
+  background-color: #0dcaf0; /* lighter cyan */
+  transform: scale(1.05);    /* subtle grow */
+}
+
+
 /* Page content spacing */
 .page-content {
   padding: 2rem 1.5rem;

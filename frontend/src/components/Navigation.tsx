@@ -122,11 +122,10 @@ export function Navigation() {
           <div className="d-flex align-items-center gap-3">
             <NotificationDropdown onOrderClick={handleOrderClick} />
             <div className="d-flex align-items-center gap-2">
-              <small className="text-muted">Welcome,</small>
               <Badge 
                 bg="info" 
                 text="dark" 
-                className="px-2 py-1"
+                className="username-badge"
                 style={{ cursor: 'pointer' }}
                 onClick={() => navigate('/user')}
                 role="button"
