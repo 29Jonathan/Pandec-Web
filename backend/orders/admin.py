@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Order, Notification
+from .models import Order, Notification, FileUpload
 
 
 @admin.register(Order)
@@ -19,3 +19,12 @@ class NotificationAdmin(admin.ModelAdmin):
     list_filter = ('is_read', 'order_status', 'created_at')
     search_fields = ('user_email', 'order_id', 'message')
     readonly_fields = ('created_at',)
+
+
+@admin.register(FileUpload)
+class FileUploadAdmin(admin.ModelAdmin):
+    list_display = ('file_name', 'uploaded_by', 'uploaded_by_name', 'recipient_email', 'file_size', 'created_at')
+    list_filter = ('created_at', 'content_type')
+    search_fields = ('file_name', 'uploaded_by', 'uploaded_by_name', 'recipient_email')
+    readonly_fields = ('created_at',)
+    ordering = ('-created_at',)

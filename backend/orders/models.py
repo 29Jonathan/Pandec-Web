@@ -45,3 +45,21 @@ class Notification(models.Model):
 
     def __str__(self) -> str:
         return f"Notification for {self.user_email} - Order {self.order_id}"
+
+
+class FileUpload(models.Model):
+    file_path = models.CharField(max_length=500)
+    file_name = models.CharField(max_length=255)
+    uploaded_by = models.CharField(max_length=255)  # email of uploader
+    uploaded_by_name = models.CharField(max_length=255)  # name of uploader
+    recipient_email = models.CharField(max_length=255)  # email of recipient
+    recipient_name = models.CharField(max_length=255, blank=True)  # name of recipient
+    file_size = models.BigIntegerField(null=True, blank=True)
+    content_type = models.CharField(max_length=100, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self) -> str:
+        return f"File {self.file_name} uploaded by {self.uploaded_by} for {self.recipient_email}"

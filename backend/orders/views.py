@@ -3,13 +3,14 @@ from rest_framework.decorators import action, api_view, permission_classes, pars
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.conf import settings
-from .models import Order, Notification
-from .serializers import OrderSerializer, NotificationSerializer
+from .models import Order, Notification, FileUpload
+from .serializers import OrderSerializer, NotificationSerializer, FileUploadSerializer
 from .supabase_client import get_supabase_client
 import tempfile
 import os
 import re
 from storage3.utils import StorageException  # type: ignore
+from django.db import models
 
 
 class IsAdminOrOwner(permissions.BasePermission):
@@ -59,15 +60,26 @@ def me(request):
 @parser_classes([MultiPartParser, FormParser])
 def upload_file(request):
     file_obj = request.FILES.get('file')
+    recipient_email = request.data.get('recipient_email', '').strip()
+    
     if not file_obj:
         return Response({'detail': 'No file provided'}, status=400)
+    
+    # If no recipient email provided, default to admin
+    if not recipient_email:
+        recipient_email = getattr(settings, 'ADMIN_EMAIL', '')
+    
     sb = get_supabase_client()
     bucket = 'uploads'
     # sanitize filename to avoid invalid storage keys (no unicode or special chars)
     safe_name = re.sub(r'[^A-Za-z0-9._-]+', '_', file_obj.name)
     if not safe_name:
         safe_name = 'file'
-    path = f"{request.user.id}/{safe_name}"
+    
+    # Create a unique path using uploader's email and timestamp
+    import time
+    timestamp = int(time.time())
+    path = f"{request.user.email}/{timestamp}_{safe_name}"
 
     # storage3 expects a filesystem path; write to temp then upload
     with tempfile.NamedTemporaryFile(delete=False) as tmp:
@@ -83,6 +95,25 @@ def upload_file(request):
                 'x-upsert': 'true',
             },
         )
+        
+        # Save file metadata to database
+        file_upload = FileUpload.objects.create(
+            file_path=f"{bucket}/{path}",
+            file_name=file_obj.name,
+            uploaded_by=request.user.email,
+            uploaded_by_name=getattr(request.user, 'username', request.user.email),
+            recipient_email=recipient_email,
+            recipient_name='',  # Could be populated if we have user lookup
+            file_size=file_obj.size,
+            content_type=file_obj.content_type or 'application/octet-stream'
+        )
+        
+        return Response({
+            'path': f"{bucket}/{path}",
+            'file_id': file_upload.id,
+            'message': f'File uploaded successfully for {recipient_email}'
+        })
+        
     except StorageException as exc:
         return Response({'detail': getattr(exc, 'message', str(exc))}, status=400)
     except Exception as exc:  # noqa: BLE001
@@ -92,7 +123,6 @@ def upload_file(request):
             os.remove(temp_path)
         except Exception:
             pass
-    return Response({'path': f"{bucket}/{path}"})
 
 
 @api_view(['GET'])
@@ -114,35 +144,22 @@ def download_url(request):
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated])
 def list_files(request):
-    sb = get_supabase_client()
-    bucket = 'uploads'
-    prefix = f"{request.user.id}"
-    try:
-        items = sb.storage.from_(bucket).list(prefix)
-    except StorageException as exc:
-        return Response({'detail': getattr(exc, 'message', str(exc))}, status=400)
-    files = []
-    for it in items:
-        name = getattr(it, 'name', None) or (isinstance(it, dict) and it.get('name'))
-        if not name:
-            continue
-        
-        # Try to get size from various possible attributes
-        size = None
-        if hasattr(it, 'metadata') and it.metadata:
-            size = it.metadata.get('size')
-        elif isinstance(it, dict):
-            size = it.get('metadata', {}).get('size') if it.get('metadata') else it.get('size')
-        elif hasattr(it, 'size'):
-            size = it.size
-            
-        files.append({
-            'name': name,
-            'path': f"{bucket}/{prefix}/{name}",
-            'last_modified': getattr(it, 'updated_at', None) or (isinstance(it, dict) and it.get('updated_at')),
-            'size': size,
-        })
-    return Response({'files': files})
+    """List files that the user can access (uploaded by them or sent to them)"""
+    user_email = request.user.email
+    is_admin = getattr(request.user, 'is_admin', False)
+    
+    # Get files from database
+    if is_admin:
+        # Admin can see all files
+        file_uploads = FileUpload.objects.all()
+    else:
+        # Regular users can see files they uploaded or files sent to them
+        file_uploads = FileUpload.objects.filter(
+            models.Q(uploaded_by=user_email) | models.Q(recipient_email=user_email)
+        )
+    
+    serializer = FileUploadSerializer(file_uploads, many=True)
+    return Response({'files': serializer.data})
 
 
 @api_view(['PATCH'])

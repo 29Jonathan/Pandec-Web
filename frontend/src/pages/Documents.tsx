@@ -6,15 +6,22 @@ import { supabase } from '../lib/supabase'
 const API = import.meta.env.VITE_API_BASE_URL as string
 
 type FileItem = {
-  name: string
-  path: string
-  last_modified?: string
-  size?: number
+  id: number
+  file_path: string
+  file_name: string
+  uploaded_by: string
+  uploaded_by_name: string
+  recipient_email: string
+  recipient_name: string
+  file_size?: number
+  content_type?: string
+  created_at: string
 }
 
 export function Documents() {
   const [files, setFiles] = useState<FileItem[]>([])
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [recipientEmail, setRecipientEmail] = useState('')
   const [uploading, setUploading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -68,12 +75,16 @@ export function Documents() {
 
       const formData = new FormData()
       formData.append('file', selectedFile)
+      if (recipientEmail.trim()) {
+        formData.append('recipient_email', recipientEmail.trim())
+      }
 
       const headers = { Authorization: `Bearer ${session.session.access_token}` }
       const response = await axios.post(`${API}/api/upload`, formData, { headers })
       
-      setSuccess('File uploaded successfully!')
+      setSuccess(response.data.message || 'File uploaded successfully!')
       setSelectedFile(null)
+      setRecipientEmail('')
       
       // Reset file input
       const fileInput = document.getElementById('fileInput') as HTMLInputElement
@@ -149,26 +160,46 @@ export function Documents() {
       )}
 
       <Row className="mb-4">
-        <Col lg={6}>
+        <Col lg={8}>
           <Card>
             <Card.Body>
               <Card.Title>Upload Document</Card.Title>
               <Form onSubmit={handleUpload}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Select File</Form.Label>
-                  <Form.Control
-                    id="fileInput"
-                    type="file"
-                    onChange={handleFileSelect}
-                    disabled={uploading}
-                  />
-                  <Form.Text className="text-muted">
-                    Choose a file to upload to your document storage
-                  </Form.Text>
-                </Form.Group>
+                <Row className="g-3">
+                  <Col md={8}>
+                    <Form.Group>
+                      <Form.Label>Select File</Form.Label>
+                      <Form.Control
+                        id="fileInput"
+                        type="file"
+                        onChange={handleFileSelect}
+                        disabled={uploading}
+                      />
+                      <Form.Text className="text-muted">
+                        Choose a file to upload to your document storage
+                      </Form.Text>
+                    </Form.Group>
+                  </Col>
+                  
+                  <Col md={4}>
+                    <Form.Group>
+                      <Form.Label>Recipient Email (Optional)</Form.Label>
+                      <Form.Control
+                        type="email"
+                        value={recipientEmail}
+                        onChange={(e) => setRecipientEmail(e.target.value)}
+                        placeholder="Leave empty for admin"
+                        disabled={uploading}
+                      />
+                      <Form.Text className="text-muted">
+                        Who should receive this file? (Admin by default)
+                      </Form.Text>
+                    </Form.Group>
+                  </Col>
+                </Row>
                 
                 {selectedFile && (
-                  <div className="mb-3">
+                  <div className="mt-3">
                     <div className="d-flex justify-content-between align-items-center">
                       <span className="text-muted">File: {selectedFile.name}</span>
                       <Badge bg="info">{formatFileSize(selectedFile.size)}</Badge>
@@ -177,20 +208,47 @@ export function Documents() {
                 )}
 
                 {uploading && (
-                  <div className="mb-3">
+                  <div className="mt-3">
                     <ProgressBar animated now={100} />
                     <small className="text-muted">Uploading...</small>
                   </div>
                 )}
 
-                <Button 
-                  type="submit" 
-                  variant="primary" 
-                  disabled={!selectedFile || uploading}
-                >
-                  {uploading ? 'Uploading...' : 'Upload Document'}
-                </Button>
+                <div className="mt-3">
+                  <Button 
+                    type="submit" 
+                    variant="primary" 
+                    disabled={!selectedFile || uploading}
+                  >
+                    {uploading ? 'Uploading...' : 'Upload Document'}
+                  </Button>
+                </div>
               </Form>
+            </Card.Body>
+          </Card>
+        </Col>
+
+        <Col lg={4}>
+          <Card className="h-100">
+            <Card.Body>
+              <Card.Title>Upload Information</Card.Title>
+              <div className="text-muted">
+                <p>Upload files and specify who should receive them:</p>
+                
+                <h6 className="mt-3">Recipient Options:</h6>
+                <ul className="small">
+                  <li><strong>Leave empty:</strong> File goes to admin</li>
+                  <li><strong>Enter email:</strong> File goes to specific user</li>
+                  <li><strong>Your email:</strong> File goes to yourself</li>
+                </ul>
+
+                <h6 className="mt-3">File Access:</h6>
+                <ul className="small">
+                  <li>You can see files you uploaded</li>
+                  <li>You can see files sent to you</li>
+                  <li>Admin can see all files</li>
+                </ul>
+              </div>
             </Card.Body>
           </Card>
         </Col>
@@ -210,25 +268,39 @@ export function Documents() {
                 <tr>
                   <th>File Name</th>
                   <th>Size</th>
-                  <th>Modified</th>
+                  <th>Uploaded By</th>
+                  <th>Recipient</th>
+                  <th>Upload Date</th>
                   <th className="text-end">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {files.map((file) => (
-                  <tr key={file.path}>
-                    <td className="fw-medium">{file.name}</td>
+                  <tr key={file.id}>
+                    <td className="fw-medium">{file.file_name}</td>
                     <td>
                       <Badge bg="light" text="dark">
-                        {formatFileSize(file.size)}
+                        {formatFileSize(file.file_size)}
                       </Badge>
                     </td>
-                    <td className="text-muted">{formatDate(file.last_modified)}</td>
+                    <td>
+                      <div>
+                        <div className="fw-medium">{file.uploaded_by_name}</div>
+                        <small className="text-muted">{file.uploaded_by}</small>
+                      </div>
+                    </td>
+                    <td>
+                      <div>
+                        <div className="fw-medium">{file.recipient_name || 'Admin'}</div>
+                        <small className="text-muted">{file.recipient_email}</small>
+                      </div>
+                    </td>
+                    <td className="text-muted">{formatDate(file.created_at)}</td>
                     <td className="text-end">
                       <Button
                         size="sm"
                         variant="outline-primary"
-                        onClick={() => handleDownload(file.path, file.name)}
+                        onClick={() => handleDownload(file.file_path, file.file_name)}
                       >
                         Download
                       </Button>
@@ -237,7 +309,7 @@ export function Documents() {
                 ))}
                 {files.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="text-center text-muted py-4">
+                    <td colSpan={6} className="text-center text-muted py-4">
                       <div className="mb-2">
                         <i className="bi bi-folder text-muted" style={{ fontSize: '2rem' }}></i>
                       </div>

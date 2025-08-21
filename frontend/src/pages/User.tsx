@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Container, Row, Col, Card, Badge, Alert, Spinner } from 'react-bootstrap'
-import { Person, Envelope, Shield, Calendar } from 'react-bootstrap-icons'
+import { Person, Envelope, Shield, Calendar, Telephone, GeoAlt, House } from 'react-bootstrap-icons'
 import { supabase } from '../lib/supabase'
 import axios from 'axios'
 
@@ -11,6 +11,11 @@ type UserInfo = {
   username: string | null
   role: string | null
   is_admin: boolean
+  telephone?: string
+  country?: string
+  city?: string
+  address?: string
+  postcode?: string
 }
 
 export function User() {
@@ -36,7 +41,19 @@ export function User() {
 
       const headers = { Authorization: `Bearer ${session.session.access_token}` }
       const response = await axios.get(`${API}/api/me`, { headers })
-      setUserInfo(response.data)
+      
+      // Get additional user metadata from Supabase
+      const { data: { user } } = await supabase.auth.getUser()
+      const userMetadata = user?.user_metadata || {}
+      
+      setUserInfo({
+        ...response.data,
+        telephone: userMetadata.telephone,
+        country: userMetadata.country,
+        city: userMetadata.city,
+        address: userMetadata.address,
+        postcode: userMetadata.postcode
+      })
     } catch (err: any) {
       setError(err.response?.data?.detail || err.message || 'Failed to load user information')
     } finally {
@@ -102,8 +119,8 @@ export function User() {
       </Row>
 
       <Row>
-        <Col lg={8} xl={6}>
-          <Card className="shadow-sm">
+        <Col lg={8}>
+          <Card className="shadow-sm mb-4">
             <Card.Header className="bg-primary text-white">
               <div className="d-flex align-items-center gap-2">
                 <Person size={24} />
@@ -115,7 +132,7 @@ export function User() {
                 <Col md={6}>
                   <div className="d-flex align-items-center gap-2 mb-2">
                     <Person size={16} className="text-muted" />
-                    <small className="text-muted">Username</small>
+                    <small className="text-muted">Full Name</small>
                   </div>
                   <div className="fw-bold fs-5">
                     {userInfo.username || 'Not set'}
@@ -134,6 +151,16 @@ export function User() {
 
                 <Col md={6}>
                   <div className="d-flex align-items-center gap-2 mb-2">
+                    <Telephone size={16} className="text-muted" />
+                    <small className="text-muted">Telephone</small>
+                  </div>
+                  <div className="fw-bold">
+                    {userInfo.telephone || 'Not provided'}
+                  </div>
+                </Col>
+
+                <Col md={6}>
+                  <div className="d-flex align-items-center gap-2 mb-2">
                     <Shield size={16} className="text-muted" />
                     <small className="text-muted">Role</small>
                   </div>
@@ -144,14 +171,56 @@ export function User() {
                     {getRoleDisplayName(userInfo.role, userInfo.is_admin)}
                   </Badge>
                 </Col>
+              </Row>
+            </Card.Body>
+          </Card>
+
+          <Card className="shadow-sm">
+            <Card.Header className="bg-light">
+              <div className="d-flex align-items-center gap-2">
+                <GeoAlt size={20} />
+                <h6 className="mb-0">Address Information</h6>
+              </div>
+            </Card.Header>
+            <Card.Body className="p-4">
+              <Row className="g-3">
+                <Col md={6}>
+                  <div className="d-flex align-items-center gap-2 mb-2">
+                    <GeoAlt size={16} className="text-muted" />
+                    <small className="text-muted">Country</small>
+                  </div>
+                  <div className="fw-bold">
+                    {userInfo.country || 'Not provided'}
+                  </div>
+                </Col>
+
+                <Col md={6}>
+                  <div className="d-flex align-items-center gap-2 mb-2">
+                    <House size={16} className="text-muted" />
+                    <small className="text-muted">City</small>
+                  </div>
+                  <div className="fw-bold">
+                    {userInfo.city || 'Not provided'}
+                  </div>
+                </Col>
 
                 <Col md={6}>
                   <div className="d-flex align-items-center gap-2 mb-2">
                     <Calendar size={16} className="text-muted" />
-                    <small className="text-muted">Account Type</small>
+                    <small className="text-muted">Postcode</small>
                   </div>
                   <div className="fw-bold">
-                    {userInfo.is_admin ? 'Administrator Account' : 'Standard Account'}
+                    {userInfo.postcode || 'Not provided'}
+                  </div>
+                </Col>
+
+                <Col xs={12}>
+                  <div className="d-flex align-items-center gap-2 mb-2">
+                    <House size={16} className="text-muted" />
+                    <small className="text-muted">Full Address</small>
+                  </div>
+                  <div className="fw-bold">
+                    {userInfo.address || 'Not provided'}
                   </div>
                 </Col>
               </Row>
@@ -159,7 +228,7 @@ export function User() {
           </Card>
         </Col>
 
-        <Col lg={4} xl={6}>
+        <Col lg={4}>
           <Card className="h-100 shadow-sm">
             <Card.Header className="bg-light">
               <h6 className="mb-0">Account Details</h6>
@@ -176,6 +245,7 @@ export function User() {
                     <>
                       <li>Full system access</li>
                       <li>View all orders</li>
+                      <li>View all files</li>
                       <li>Manage system settings</li>
                       <li>Receive admin notifications</li>
                     </>
@@ -183,6 +253,7 @@ export function User() {
                     <>
                       <li>Create and manage orders</li>
                       <li>Upload and download documents</li>
+                      <li>Send files to specific users</li>
                       <li>Track order status</li>
                       <li>Receive order notifications</li>
                     </>
@@ -191,6 +262,7 @@ export function User() {
                       <li>View your orders</li>
                       <li>Track order status</li>
                       <li>Upload and download documents</li>
+                      <li>Send files to specific users</li>
                       <li>Receive order notifications</li>
                     </>
                   )}
