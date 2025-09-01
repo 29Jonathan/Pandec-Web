@@ -116,7 +116,14 @@ export function Navigation() {
               to="/management" 
               className={location.pathname === '/management' ? 'active fw-medium' : 'fw-medium'}
             >
-              Management
+              Create Order
+            </Nav.Link>
+            <Nav.Link 
+              as={Link} 
+              to="/find-user" 
+              className={location.pathname === '/find-user' ? 'active fw-medium' : 'fw-medium'}
+            >
+              Find User
             </Nav.Link>
           </Nav>
           <div className="d-flex align-items-center gap-3">

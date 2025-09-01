@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Order, Notification, FileUpload
+from .models import Order, Notification, FileUpload, UserProfile
 
 
 @admin.register(Order)
@@ -20,7 +20,7 @@ class OrderAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Basic Information', {
-            'fields': ('order_id', 'shipper', 'shipper_freight_number', 'customer')
+            'fields': ('order_id', 'shipper', 'shipper_email', 'shipper_freight_number', 'customer', 'customer_email')
         }),
         ('Shipment Details', {
             'fields': ('shipment_type', 'carrier_company', 'carrier_tracking_number', 'carrier_bl_number', 'vessel_flight_name')
@@ -59,3 +59,12 @@ class FileUploadAdmin(admin.ModelAdmin):
     search_fields = ('file_name', 'uploaded_by', 'uploaded_by_name', 'recipient_email')
     readonly_fields = ('created_at',)
     ordering = ('-created_at',)
+
+
+@admin.register(UserProfile)
+class UserProfileAdmin(admin.ModelAdmin):
+    list_display = ('username', 'email', 'role', 'country', 'city', 'created_at')
+    list_filter = ('role', 'country', 'created_at')
+    search_fields = ('username', 'email', 'country', 'city')
+    readonly_fields = ('created_at', 'updated_at')
+    ordering = ('username',)

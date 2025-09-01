@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Container, Row, Col, Card, Form, Button, Table, Modal, Alert, Badge } from 'react-bootstrap'
+import { Row, Col, Card, Form, Button, Table, Modal, Alert, Badge } from 'react-bootstrap'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { Trash } from 'react-bootstrap-icons'
 import axios from 'axios'
 import { supabase } from '../lib/supabase'
 import { useOrders } from '../hooks/useOrders'
@@ -11,8 +12,10 @@ type Order = {
   id: number
   order_id: string
   shipper: string
+  shipper_email?: string
   shipper_freight_number: string
   customer: string
+  customer_email?: string
   shipment_type: string
   carrier_company: string
   carrier_tracking_number: string
@@ -37,6 +40,7 @@ type Order = {
   logistics_status: string
   other_remarks: string
   created_by: string
+  created_by_username?: string
   created_at: string
 }
 
@@ -47,11 +51,14 @@ export function Tracking() {
   const [showNotFound, setShowNotFound] = useState(false)
   const [searchLoading, setSearchLoading] = useState(false)
   const [updatingStatus, setUpdatingStatus] = useState<number | null>(null)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [userInfo, setUserInfo] = useState<{ email: string; is_admin: boolean } | null>(null)
   const location = useLocation()
   const navigate = useNavigate()
   
   // Use centralized orders hook
-  const { orders, loading, error, updateOrderStatus, clearError } = useOrders()
+  const { orders, loading, error, updateOrderStatus, deleteOrder, clearError } = useOrders()
 
   // Debounced search function
   const debouncedSearch = useCallback(
@@ -119,6 +126,23 @@ export function Tracking() {
     }
   }, [orders, location.state?.orderId, showModal])
 
+  // Load user info for permission checking
+  useEffect(() => {
+    const loadUserInfo = async () => {
+      try {
+        const { data: session } = await supabase.auth.getSession()
+        if (session.session) {
+          const headers = { Authorization: `Bearer ${session.session.access_token}` }
+          const response = await axios.get(`${API}/api/me`, { headers })
+          setUserInfo(response.data)
+        }
+      } catch {
+        console.error('Failed to load user info')
+      }
+    }
+    loadUserInfo()
+  }, [])
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     // Search is now handled by the debounced effect
@@ -128,22 +152,38 @@ export function Tracking() {
     setUpdatingStatus(orderId)
     try {
       await updateOrderStatus(orderId, newStatus)
-    } catch (err: any) {
+    } catch {
       // Error is handled by the hook
     } finally {
       setUpdatingStatus(null)
     }
   }
 
-  const getStatusBadgeColor = (status: string) => {
-    switch (status) {
-      case 'preparing': return 'warning'
-      case 'shipping': return 'info'
-      case 'arrived': return 'success'
-      case 'complete': return 'secondary'
-      default: return 'light'
+  const handleDelete = () => {
+    setShowDeleteModal(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!selectedOrder) return
+
+    setDeleting(true)
+    try {
+      await deleteOrder(selectedOrder.id)
+      setShowModal(false)
+      setShowDeleteModal(false)
+    } catch {
+      // Error is handled by the hook
+    } finally {
+      setDeleting(false)
     }
   }
+
+  const canDeleteOrder = (order: Order) => {
+    if (!userInfo || !order) return false
+    return userInfo.is_admin || order.created_by === userInfo.email
+  }
+
+
 
   const getShipmentTypeDisplay = (type: string) => {
     switch (type) {
@@ -329,7 +369,7 @@ export function Tracking() {
               <Row className="mt-3">
                 <Col md={6}>
                   <h6 className="text-primary mb-3">Status and Metadata</h6>
-                  <p><strong>Created By:</strong> {selectedOrder.created_by}</p>
+                  <p><strong>Created By:</strong> {selectedOrder.created_by_username || selectedOrder.created_by}</p>
                   <p><strong>Created At:</strong> {new Date(selectedOrder.created_at).toLocaleDateString()}</p>
                 </Col>
                 
@@ -354,9 +394,21 @@ export function Tracking() {
           )}
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowModal(false)}>
-            Close
-          </Button>
+          <div className="d-flex justify-content-between w-100">
+            {selectedOrder && canDeleteOrder(selectedOrder) && (
+              <Button 
+                variant="outline-danger" 
+                onClick={handleDelete}
+                disabled={deleting}
+              >
+                <Trash size={16} className="me-1" />
+                Delete Order
+              </Button>
+            )}
+            <Button variant="secondary" onClick={() => setShowModal(false)}>
+              Close
+            </Button>
+          </div>
         </Modal.Footer>
       </Modal>
 
@@ -377,6 +429,35 @@ export function Tracking() {
         <Modal.Footer>
           <Button variant="primary" onClick={() => setShowNotFound(false)}>
             OK
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Confirm Order Deletion</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <div className="text-center">
+            <div className="mb-3">
+              <Trash size={48} className="text-danger" />
+            </div>
+            <h5>Delete Order: {selectedOrder?.order_id}</h5>
+            <p className="text-muted">
+              Are you sure you want to delete this order? This action cannot be undone and will permanently remove the order from the system.
+            </p>
+            <div className="alert alert-warning">
+              <strong>Warning:</strong> This will also delete any associated notifications and cannot be recovered.
+            </div>
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowDeleteModal(false)} disabled={deleting}>
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={confirmDelete} disabled={deleting}>
+            {deleting ? 'Deleting...' : 'Delete Order'}
           </Button>
         </Modal.Footer>
       </Modal>

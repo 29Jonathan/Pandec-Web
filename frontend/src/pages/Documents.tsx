@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Container, Row, Col, Card, Form, Button, Table, Alert, Badge, ProgressBar } from 'react-bootstrap'
+import { Row, Col, Card, Form, Button, Table, Alert, Badge, ProgressBar, Modal } from 'react-bootstrap'
+import { Trash, Download } from 'react-bootstrap-icons'
 import axios from 'axios'
 import { supabase } from '../lib/supabase'
 
@@ -26,6 +27,9 @@ export function Documents() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [fileToDelete, setFileToDelete] = useState<FileItem | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     loadFiles()
@@ -100,7 +104,7 @@ export function Documents() {
     }
   }
 
-  const handleDownload = async (path: string, _filename: string) => {
+  const handleDownload = async (path: string) => {
     try {
       const { data: session } = await supabase.auth.getSession()
       if (!session.session) {
@@ -113,6 +117,42 @@ export function Documents() {
       window.open(response.data.url, '_blank')
     } catch (err: any) {
       setError(err.response?.data?.detail || err.message || 'Download failed')
+    }
+  }
+
+  const handleDelete = async (file: FileItem) => {
+    setFileToDelete(file)
+    setShowDeleteModal(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!fileToDelete) return
+
+    setDeleting(true)
+    setError('')
+    setSuccess('')
+
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      if (!session.session) {
+        setError('Please login to delete files')
+        return
+      }
+
+      const headers = { Authorization: `Bearer ${session.session.access_token}` }
+             await axios.delete(`${API}/api/files/${fileToDelete.id}/delete`, { headers })
+      
+      setSuccess('File deleted successfully!')
+      setShowDeleteModal(false)
+      setFileToDelete(null)
+      
+      // Reload files list
+      await loadFiles()
+      
+    } catch (err: any) {
+      setError(err.response?.data?.detail || err.message || 'Delete failed')
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -183,16 +223,16 @@ export function Documents() {
                   
                   <Col md={4}>
                     <Form.Group>
-                      <Form.Label>Recipient Email (Optional)</Form.Label>
+                      <Form.Label>Recipient Name (Optional)</Form.Label>
                       <Form.Control
-                        type="email"
+                        type="text"
                         value={recipientEmail}
                         onChange={(e) => setRecipientEmail(e.target.value)}
-                        placeholder="Leave empty for admin"
+                        placeholder="Enter username or leave empty for admin"
                         disabled={uploading}
                       />
                       <Form.Text className="text-muted">
-                        Who should receive this file? (Admin by default)
+                        Enter the username of who should receive this file (Admin by default)
                       </Form.Text>
                     </Form.Group>
                   </Col>
@@ -238,8 +278,8 @@ export function Documents() {
                 <h6 className="mt-3">Recipient Options:</h6>
                 <ul className="small">
                   <li><strong>Leave empty:</strong> File goes to admin</li>
-                  <li><strong>Enter email:</strong> File goes to specific user</li>
-                  <li><strong>Your email:</strong> File goes to yourself</li>
+                  <li><strong>Enter username:</strong> File goes to specific user</li>
+                  <li><strong>Your username:</strong> File goes to yourself</li>
                 </ul>
 
                 <h6 className="mt-3">File Access:</h6>
@@ -284,26 +324,32 @@ export function Documents() {
                       </Badge>
                     </td>
                     <td>
-                      <div>
-                        <div className="fw-medium">{file.uploaded_by_name}</div>
-                        <small className="text-muted">{file.uploaded_by}</small>
-                      </div>
+                      <div className="fw-medium">{file.uploaded_by_name}</div>
                     </td>
                     <td>
-                      <div>
-                        <div className="fw-medium">{file.recipient_name || 'Admin'}</div>
-                        <small className="text-muted">{file.recipient_email}</small>
-                      </div>
+                      <div className="fw-medium">{file.recipient_name || 'Admin'}</div>
                     </td>
                     <td className="text-muted">{formatDate(file.created_at)}</td>
                     <td className="text-end">
-                      <Button
-                        size="sm"
-                        variant="outline-primary"
-                        onClick={() => handleDownload(file.file_path, file.file_name)}
-                      >
-                        Download
-                      </Button>
+                      <div className="d-flex gap-2 justify-content-end">
+                        <Button
+                          size="sm"
+                          variant="outline-primary"
+                          onClick={() => handleDownload(file.file_path)}
+                          title="Download file"
+                        >
+                          <Download size={14} />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline-danger"
+                          onClick={() => handleDelete(file)}
+                          disabled={deleting}
+                          title="Delete file"
+                        >
+                          <Trash size={14} />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -324,6 +370,26 @@ export function Documents() {
           </div>
         </Card.Body>
       </Card>
+
+      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Confirm Deletion</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>Are you sure you want to delete <strong>"{fileToDelete?.file_name}"</strong>?</p>
+          <p className="text-muted small mb-0">
+            This will permanently remove the file from both storage and the database. This action cannot be undone.
+          </p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowDeleteModal(false)} disabled={deleting}>
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={confirmDelete} disabled={deleting}>
+            {deleting ? 'Deleting...' : 'Delete'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   )
 }

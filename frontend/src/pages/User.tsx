@@ -132,7 +132,7 @@ export function User() {
                 <Col md={6}>
                   <div className="d-flex align-items-center gap-2 mb-2">
                     <Person size={16} className="text-muted" />
-                    <small className="text-muted">Full Name</small>
+                    <small className="text-muted">User Name</small>
                   </div>
                   <div className="fw-bold fs-5">
                     {userInfo.username || 'Not set'}

@@ -7,12 +7,13 @@ import requests
 
 
 class SupabaseUser:
-    def __init__(self, user_id: str, email: str, username: Optional[str], role: Optional[str], is_admin: bool):
+    def __init__(self, user_id: str, email: str, username: Optional[str], role: Optional[str], is_admin: bool, user_metadata: Optional[dict] = None):
         self.id = user_id
         self.email = email
         self.username = username
         self.role = role
         self.is_admin = is_admin
+        self.user_metadata = user_metadata or {}
 
     @property
     def is_authenticated(self) -> bool:  # type: ignore[override]
@@ -84,7 +85,7 @@ class SupabaseJWTAuthentication(BaseAuthentication):
             username = user_meta.get('username')
             role = user_meta.get('role')
             is_admin = (email == getattr(settings, 'ADMIN_EMAIL', '')) if email else False
-            user = SupabaseUser(user_id=user_id, email=email, username=username, role=role, is_admin=is_admin)
+            user = SupabaseUser(user_id=user_id, email=email, username=username, role=role, is_admin=is_admin, user_metadata=user_meta)
             return (user, None)
         except Exception as exc:  # noqa: BLE001
             raise exceptions.AuthenticationFailed('Invalid authentication') from exc

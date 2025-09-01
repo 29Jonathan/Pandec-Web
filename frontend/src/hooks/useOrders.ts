@@ -8,8 +8,10 @@ type Order = {
   id: number
   order_id: string
   shipper: string
+  shipper_email?: string
   shipper_freight_number: string
   customer: string
+  customer_email?: string
   shipment_type: string
   carrier_company: string
   carrier_tracking_number: string
@@ -34,6 +36,7 @@ type Order = {
   logistics_status: string
   other_remarks: string
   created_by: string
+  created_by_username?: string
   created_at: string
 }
 
@@ -114,6 +117,23 @@ export function useOrders() {
     }
   }, [loadOrders])
 
+  const deleteOrder = useCallback(async (orderId: number) => {
+    try {
+      const { data: session } = await supabase.auth.getSession()
+      if (!session.session) {
+        throw new Error('Please login to delete orders')
+      }
+
+      const headers = { Authorization: `Bearer ${session.session.access_token}` }
+      await axios.delete(`${API}/api/orders/${orderId}/`, { headers })
+      
+      // Force refresh orders to get updated data
+      await loadOrders(true)
+    } catch (err: any) {
+      throw err
+    }
+  }, [loadOrders])
+
   // Initial load
   useEffect(() => {
     loadOrders()
@@ -131,6 +151,7 @@ export function useOrders() {
     error,
     loadOrders,
     updateOrderStatus,
+    deleteOrder,
     clearError: () => setError('')
   }
 }

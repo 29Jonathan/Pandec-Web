@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Container, Row, Col, Card, Form, Button, Alert, Tabs, Tab } from 'react-bootstrap'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import axios from 'axios'
 
 export function Auth() {
   const [activeTab, setActiveTab] = useState('login')
@@ -55,6 +56,18 @@ export function Auth() {
       if (error) {
         setError(error.message)
       } else {
+        // Automatically sync user profile to Django database
+        try {
+          const { data: session } = await supabase.auth.getSession()
+          if (session.session) {
+            const API = import.meta.env.VITE_API_BASE_URL as string
+            const headers = { Authorization: `Bearer ${session.session.access_token}` }
+            await axios.post(`${API}/api/sync-profile`, {}, { headers })
+          }
+        } catch (syncError) {
+          console.warn('Profile sync failed, but login was successful:', syncError)
+        }
+        
         setSuccess('Login successful! Redirecting...')
         setTimeout(() => navigate('/tracking'), 1000)
       }
@@ -91,6 +104,18 @@ export function Auth() {
       if (error) {
         setError(error.message)
       } else {
+        // Automatically sync user profile to Django database
+        try {
+          const { data: session } = await supabase.auth.getSession()
+          if (session.session) {
+            const API = import.meta.env.VITE_API_BASE_URL as string
+            const headers = { Authorization: `Bearer ${session.session.access_token}` }
+            await axios.post(`${API}/api/sync-profile`, {}, { headers })
+          }
+        } catch (syncError) {
+          console.warn('Profile sync failed, but registration was successful:', syncError)
+        }
+        
         setSuccess('Registration successful! Redirecting...')
         setTimeout(() => navigate('/tracking'), 1000)
       }
@@ -179,12 +204,12 @@ export function Auth() {
                     <Row className="g-3">
                       <Col md={6}>
                         <Form.Group>
-                          <Form.Label>Full Name *</Form.Label>
+                          <Form.Label>User Name *</Form.Label>
                           <Form.Control
                             type="text"
                             value={signupForm.name}
                             onChange={(e) => setSignupForm({ ...signupForm, name: e.target.value })}
-                            placeholder="Enter your full name"
+                            placeholder="Enter your user name"
                             required
                           />
                         </Form.Group>

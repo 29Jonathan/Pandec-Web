@@ -63,7 +63,7 @@ const initialForm: OrderForm = {
   other_remarks: ''
 }
 
-export function Management() {
+export function CreateOrder() {
   const [form, setForm] = useState<OrderForm>(initialForm)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -83,6 +83,19 @@ export function Management() {
       const { data: session } = await supabase.auth.getSession()
       if (!session.session) {
         setError('Please login to create orders')
+        return
+      }
+
+      // Validate shipper and customer are not empty
+      if (!form.shipper.trim()) {
+        setError('Shipper username is required')
+        setLoading(false)
+        return
+      }
+
+      if (!form.customer.trim()) {
+        setError('Customer username is required')
+        setLoading(false)
         return
       }
 
@@ -118,7 +131,7 @@ export function Management() {
     <div>
       <Row className="mb-4">
         <Col>
-          <h2 className="mb-3">Order Management</h2>
+          <h2 className="mb-3">Create Order</h2>
           <p className="text-muted">Create new logistics orders in the system</p>
         </Col>
       </Row>
@@ -139,7 +152,7 @@ export function Management() {
         <Col lg={10} xl={8}>
           <Card>
             <Card.Body>
-              <Card.Title>Create New Logistics Order</Card.Title>
+              <Card.Title>Create New Order</Card.Title>
               <Form onSubmit={handleSubmit}>
                 <Row className="g-3">
                   {/* Basic Information */}
@@ -158,12 +171,12 @@ export function Management() {
                   
                   <Col md={6}>
                     <Form.Group>
-                      <Form.Label>Shipper *</Form.Label>
+                      <Form.Label>Shipper Username *</Form.Label>
                       <Form.Control
                         type="text"
                         value={form.shipper}
                         onChange={(e) => handleInputChange('shipper', e.target.value)}
-                        placeholder="Enter Shipper Name"
+                        placeholder="Enter Shipper Username"
                         required
                       />
                     </Form.Group>
@@ -183,12 +196,12 @@ export function Management() {
 
                   <Col md={6}>
                     <Form.Group>
-                      <Form.Label>Customer *</Form.Label>
+                      <Form.Label>Customer Username *</Form.Label>
                       <Form.Control
                         type="text"
                         value={form.customer}
                         onChange={(e) => handleInputChange('customer', e.target.value)}
-                        placeholder="Enter Customer Name"
+                        placeholder="Enter Customer Username"
                         required
                       />
                     </Form.Group>
@@ -513,11 +526,18 @@ export function Management() {
               <div className="text-muted">
                 <p>Fill out all required fields to create a new logistics order. The order will be immediately available in the tracking system.</p>
                 
+                <h6 className="mt-4">Access Control:</h6>
+                <ul className="small">
+                  <li>Orders can only be viewed by the creator, shipper, customer, and admin</li>
+                  <li>Shipper and Customer must be valid usernames in the system</li>
+                  <li>Use the "Find User" page to search for valid usernames</li>
+                </ul>
+                
                 <h6 className="mt-4">Required Fields:</h6>
                 <ul className="small">
                   <li>Order ID - Unique identifier</li>
-                  <li>Shipper - Source company</li>
-                  <li>Customer - Destination company</li>
+                  <li>Shipper Username - Must be a valid user</li>
+                  <li>Customer Username - Must be a valid user</li>
                   <li>Shipment Type - Transportation method</li>
                   <li>Carrier Company - Transport provider</li>
                   <li>Dates - Loading, departure, and arrival</li>

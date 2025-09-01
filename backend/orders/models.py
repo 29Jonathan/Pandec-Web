@@ -4,9 +4,11 @@ from django.db import models
 class Order(models.Model):
     # Basic Information
     order_id = models.CharField(max_length=100, unique=True)
-    shipper = models.CharField(max_length=255)
+    shipper = models.CharField(max_length=255)  # Username
+    shipper_email = models.CharField(max_length=255, blank=True)  # Email for reference
     shipper_freight_number = models.CharField(max_length=100)
-    customer = models.CharField(max_length=255)
+    customer = models.CharField(max_length=255)  # Username
+    customer_email = models.CharField(max_length=255, blank=True)  # Email for reference
     
     # Shipment Details
     SHIPMENT_TYPE_CHOICES = [
@@ -114,3 +116,29 @@ class FileUpload(models.Model):
 
     def __str__(self) -> str:
         return f"File {self.file_name} uploaded by {self.uploaded_by} for {self.recipient_email}"
+
+
+class UserProfile(models.Model):
+    """User profile information for search functionality"""
+    user_id = models.CharField(max_length=255, unique=True)  # Supabase user ID
+    email = models.EmailField(unique=True)
+    username = models.CharField(max_length=255)
+    role = models.CharField(max_length=50, blank=True)
+    telephone = models.CharField(max_length=50, blank=True)
+    country = models.CharField(max_length=100, blank=True)
+    city = models.CharField(max_length=100, blank=True)
+    address = models.TextField(blank=True)
+    postcode = models.CharField(max_length=20, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['username']
+        indexes = [
+            models.Index(fields=['username']),
+            models.Index(fields=['email']),
+            models.Index(fields=['role']),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.username} ({self.email})"

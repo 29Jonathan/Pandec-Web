@@ -1,10 +1,10 @@
-from rest_framework import viewsets, permissions
+from rest_framework import viewsets, permissions, serializers
 from rest_framework.decorators import action, api_view, permission_classes, parser_classes
 from rest_framework.response import Response
 from rest_framework.parsers import MultiPartParser, FormParser
 from django.conf import settings
-from .models import Order, Notification, FileUpload
-from .serializers import OrderSerializer, NotificationSerializer, FileUploadSerializer
+from .models import Order, Notification, FileUpload, UserProfile
+from .serializers import OrderSerializer, NotificationSerializer, FileUploadSerializer, UserProfileSerializer
 from .supabase_client import get_supabase_client
 import tempfile
 import os
@@ -20,7 +20,11 @@ class IsAdminOrOwner(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         if getattr(request.user, 'is_admin', False):
             return True
-        return obj.created_by == request.user.email
+        # Check if user is the creator, shipper, or customer
+        user_email = request.user.email
+        return (obj.created_by == user_email or 
+                obj.shipper_email == user_email or 
+                obj.customer_email == user_email)
 
 
 class OrderViewSet(viewsets.ModelViewSet):
@@ -29,14 +33,46 @@ class OrderViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminOrOwner]
 
     def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user.email)
+        # Validate shipper and customer usernames
+        shipper_username = serializer.validated_data.get('shipper')
+        customer_username = serializer.validated_data.get('customer')
+        
+        # Look up shipper
+        try:
+            shipper_profile = UserProfile.objects.filter(username__iexact=shipper_username).first()
+            if not shipper_profile:
+                raise serializers.ValidationError(f"Shipper '{shipper_username}' not found. Please enter a valid username.")
+            shipper_email = shipper_profile.email
+        except Exception as e:
+            raise serializers.ValidationError(f"Error validating shipper: {str(e)}")
+        
+        # Look up customer
+        try:
+            customer_profile = UserProfile.objects.filter(username__iexact=customer_username).first()
+            if not customer_profile:
+                raise serializers.ValidationError(f"Customer '{customer_username}' not found. Please enter a valid username.")
+            customer_email = customer_profile.email
+        except Exception as e:
+            raise serializers.ValidationError(f"Error validating customer: {str(e)}")
+        
+        # Save with validated emails
+        serializer.save(
+            created_by=self.request.user.email,
+            shipper_email=shipper_email,
+            customer_email=customer_email
+        )
 
     def get_queryset(self):
         user = self.request.user
         if getattr(user, 'is_admin', False):
             qs = Order.objects.all()
         else:
-            qs = Order.objects.filter(created_by=user.email)
+            # Users can see orders where they are creator, shipper, or customer
+            qs = Order.objects.filter(
+                models.Q(created_by=user.email) |
+                models.Q(shipper_email=user.email) |
+                models.Q(customer_email=user.email)
+            )
         order_id = self.request.query_params.get('order_id')
         if order_id:
             qs = qs.filter(order_id=order_id)
@@ -55,19 +91,73 @@ def me(request):
     return Response(data)
 
 
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def search_users(request):
+    """Search for users by username using database"""
+    username_query = request.query_params.get('username', '').strip()
+    
+    if not username_query:
+        return Response({'detail': 'Username query is required'}, status=400)
+    
+    if len(username_query) < 2:
+        return Response({'detail': 'Username query must be at least 2 characters'}, status=400)
+    
+    try:
+        # Search for users in the database
+        # Case-insensitive partial match on username
+        matching_users = UserProfile.objects.filter(
+            username__icontains=username_query
+        ).exclude(
+            email=request.user.email  # Exclude current user
+        )[:20]  # Limit results
+        
+        serializer = UserProfileSerializer(matching_users, many=True)
+        
+        return Response({
+            'users': serializer.data,
+            'count': len(serializer.data)
+        })
+        
+    except Exception as exc:
+        print(f"Search users error: {exc}")
+        return Response({'detail': 'An error occurred while searching users'}, status=500)
+
+
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
 @parser_classes([MultiPartParser, FormParser])
 def upload_file(request):
     file_obj = request.FILES.get('file')
-    recipient_email = request.data.get('recipient_email', '').strip()
+    recipient_username = request.data.get('recipient_email', '').strip()  # Keep same field name for compatibility
     
     if not file_obj:
         return Response({'detail': 'No file provided'}, status=400)
     
-    # If no recipient email provided, default to admin
-    if not recipient_email:
+    # Look up recipient by username if provided
+    recipient_email = ''
+    recipient_name = ''
+    
+    if recipient_username:
+        try:
+            from .models import UserProfile
+            # Try to find user by username
+            user_profile = UserProfile.objects.filter(username__iexact=recipient_username).first()
+            if user_profile:
+                recipient_email = user_profile.email
+                recipient_name = user_profile.username
+            else:
+                # If username not found, treat as email for backward compatibility
+                recipient_email = recipient_username
+                recipient_name = recipient_username
+        except Exception:
+            # Fallback to treating as email
+            recipient_email = recipient_username
+            recipient_name = recipient_username
+    else:
+        # If no recipient provided, default to admin
         recipient_email = getattr(settings, 'ADMIN_EMAIL', '')
+        recipient_name = 'Admin'
     
     sb = get_supabase_client()
     bucket = 'uploads'
@@ -103,7 +193,7 @@ def upload_file(request):
             uploaded_by=request.user.email,
             uploaded_by_name=getattr(request.user, 'username', request.user.email),
             recipient_email=recipient_email,
-            recipient_name='',  # Could be populated if we have user lookup
+            recipient_name=recipient_name,
             file_size=file_obj.size,
             content_type=file_obj.content_type or 'application/octet-stream'
         )
@@ -111,7 +201,7 @@ def upload_file(request):
         return Response({
             'path': f"{bucket}/{path}",
             'file_id': file_upload.id,
-            'message': f'File uploaded successfully for {recipient_email}'
+            'message': f'File uploaded successfully for {recipient_name}'
         })
         
     except StorageException as exc:
@@ -160,6 +250,47 @@ def list_files(request):
     
     serializer = FileUploadSerializer(file_uploads, many=True)
     return Response({'files': serializer.data})
+
+
+@api_view(['DELETE'])
+@permission_classes([permissions.IsAuthenticated])
+def delete_file(request, file_id):
+    """Delete a file from both Supabase storage and database"""
+    try:
+        file_upload = FileUpload.objects.get(id=file_id)
+        
+        # Check permissions: user can delete if they uploaded it, received it, or are admin
+        user_email = request.user.email
+        is_admin = getattr(request.user, 'is_admin', False)
+        
+        can_delete = (
+            is_admin or 
+            file_upload.uploaded_by == user_email or 
+            file_upload.recipient_email == user_email
+        )
+        
+        if not can_delete:
+            return Response({'detail': 'Not authorized to delete this file'}, status=403)
+        
+        # Delete from Supabase storage
+        sb = get_supabase_client()
+        bucket, key = file_upload.file_path.split('/', 1)
+        
+        try:
+            sb.storage.from_(bucket).remove([key])
+        except Exception as storage_error:
+            # Log the error but continue with database deletion
+            print(f"Storage deletion error: {storage_error}")
+        
+        # Delete from database
+        file_upload.delete()
+        
+        return Response({'message': 'File deleted successfully'})
+        
+    except FileUpload.DoesNotExist:
+        return Response({'detail': 'File not found'}, status=404)
+    except Exception as exc:
+        return Response({'detail': str(exc)}, status=500)
 
 
 @api_view(['PATCH'])
@@ -268,3 +399,82 @@ def get_unread_count(request):
         is_read=False
     ).count()
     return Response({'count': count})
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def sync_user_profile(request):
+    """Sync current user's profile to the database"""
+    try:
+        from .models import UserProfile
+        
+        user = request.user
+        user_meta = getattr(user, 'user_metadata', {}) or {}
+        
+        # Extract user data with fallbacks
+        username = user_meta.get('username') or user_meta.get('name') or user.email
+        role = user_meta.get('role') or ''
+        telephone = user_meta.get('telephone') or user_meta.get('phone') or ''
+        country = user_meta.get('country') or ''
+        city = user_meta.get('city') or ''
+        address = user_meta.get('address') or ''
+        postcode = user_meta.get('postcode') or ''
+        
+        # Get or create user profile
+        profile, created = UserProfile.objects.get_or_create(
+            user_id=user.id,
+            defaults={
+                'email': user.email,
+                'username': username,
+                'role': role,
+                'telephone': telephone,
+                'country': country,
+                'city': city,
+                'address': address,
+                'postcode': postcode,
+            }
+        )
+        
+        if not created:
+            # Update existing profile with latest data
+            profile.email = user.email
+            profile.username = username
+            profile.role = role
+            profile.telephone = telephone
+            profile.country = country
+            profile.city = city
+            profile.address = address
+            profile.postcode = postcode
+            profile.save()
+        
+        serializer = UserProfileSerializer(profile)
+        return Response({
+            'profile': serializer.data,
+            'created': created,
+            'message': 'Profile synced successfully'
+        })
+        
+    except Exception as exc:
+        print(f"Sync user profile error: {exc}")
+        return Response({'detail': 'Failed to sync user profile'}, status=500)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated])
+def debug_user_profiles(request):
+    """Debug endpoint to check user profiles in database"""
+    try:
+        from .models import UserProfile
+        
+        # Get all user profiles
+        profiles = UserProfile.objects.all()
+        serializer = UserProfileSerializer(profiles, many=True)
+        
+        return Response({
+            'profiles': serializer.data,
+            'count': len(serializer.data)
+        })
+        
+    except Exception as exc:
+        print(f"Debug user profiles error: {exc}")
+        return Response({'detail': 'Failed to get user profiles'}, status=500)
