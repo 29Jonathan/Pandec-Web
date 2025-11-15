@@ -9,7 +9,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ShipmentModal } from '@/components/modals/ShipmentModal'
-import { ExternalLink, Pencil, Search, ArrowUpDown } from 'lucide-react'
+import { ContainerModal } from '@/components/modals/ContainerModal'
+import { ExternalLink, Pencil, Search, ArrowUpDown, Package } from 'lucide-react'
 import { toast } from 'sonner'
 
 type SortField = 'order_code' | 'load_date' | 'departure_date' | 'arrival_date'
@@ -17,7 +18,9 @@ type SortDirection = 'asc' | 'desc'
 
 export function Shipments() {
   const [modalOpen, setModalOpen] = useState(false)
+  const [containerModalOpen, setContainerModalOpen] = useState(false)
   const [editingShipment, setEditingShipment] = useState<any>(null)
+  const [selectedShipmentId, setSelectedShipmentId] = useState<string | undefined>(undefined)
   const [searchQuery, setSearchQuery] = useState('')
   const [sortField, setSortField] = useState<SortField>('order_code')
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
@@ -98,6 +101,16 @@ export function Shipments() {
   const handleCloseModal = () => {
     setModalOpen(false)
     setEditingShipment(null)
+  }
+
+  const handleAddContainer = (shipmentId: string) => {
+    setSelectedShipmentId(shipmentId)
+    setContainerModalOpen(true)
+  }
+
+  const handleCloseContainerModal = () => {
+    setContainerModalOpen(false)
+    setSelectedShipmentId(undefined)
   }
   
   const updateShipmentMutation = useMutation({
@@ -279,6 +292,14 @@ export function Shipments() {
                     </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       <div className="flex gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleAddContainer(shipment.id)}
+                          title="Add container"
+                        >
+                          <Package className="h-4 w-4" />
+                        </Button>
                         {isAdmin && (
                           <Button
                             variant="ghost"
@@ -305,6 +326,12 @@ export function Shipments() {
         open={modalOpen} 
         onOpenChange={handleCloseModal}
         shipment={editingShipment}
+      />
+
+      <ContainerModal 
+        open={containerModalOpen} 
+        onOpenChange={handleCloseContainerModal}
+        shipmentId={selectedShipmentId}
       />
     </div>
   )

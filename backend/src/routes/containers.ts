@@ -73,7 +73,7 @@ router.get('/:id', async (req: AuthRequest, res) => {
   }
 });
 
-// Create new container
+// Create new container (or update if exists by container_number)
 router.post('/', async (req: AuthRequest, res) => {
   const client = await pool.connect();
   try {
@@ -92,35 +92,61 @@ router.post('/', async (req: AuthRequest, res) => {
       return res.status(400).json({ error: 'container_number is required' });
     }
     
-    // Create container
-    const containerResult = await client.query(
-      `INSERT INTO containers (container_number, container_type, tare_weight, gross_weight)
-       VALUES ($1, $2, $3, $4)
-       RETURNING *`,
-      [container_number, container_type, tare_weight, gross_weight]
+    // Check if container with this number already exists
+    const existingResult = await client.query(
+      'SELECT id FROM containers WHERE container_number = $1',
+      [container_number]
     );
     
-    const container = containerResult.rows[0];
+    let container;
     
-    // If shipment_id provided, link container to shipment
+    if (existingResult.rows.length > 0) {
+      // Update existing container
+      const updateResult = await client.query(
+        `UPDATE containers 
+         SET container_type = $1, tare_weight = $2, gross_weight = $3
+         WHERE container_number = $4
+         RETURNING *`,
+        [container_type, tare_weight, gross_weight, container_number]
+      );
+      container = updateResult.rows[0];
+    } else {
+      // Create new container
+      const containerResult = await client.query(
+        `INSERT INTO containers (container_number, container_type, tare_weight, gross_weight)
+         VALUES ($1, $2, $3, $4)
+         RETURNING *`,
+        [container_number, container_type, tare_weight, gross_weight]
+      );
+      container = containerResult.rows[0];
+    }
+    
+    // If shipment_id provided, link container to shipment (if not already linked)
     if (shipment_id) {
-      await client.query(
-        'INSERT INTO shipment_containers (shipment_id, container_id) VALUES ($1, $2)',
+      const linkCheck = await client.query(
+        'SELECT id FROM shipment_containers WHERE shipment_id = $1 AND container_id = $2',
         [shipment_id, container.id]
       );
+      
+      if (linkCheck.rows.length === 0) {
+        await client.query(
+          'INSERT INTO shipment_containers (shipment_id, container_id) VALUES ($1, $2)',
+          [shipment_id, container.id]
+        );
+      }
     }
     
     await client.query('COMMIT');
-    res.status(201).json(container);
+    res.status(existingResult.rows.length > 0 ? 200 : 201).json(container);
   } catch (error: any) {
     await client.query('ROLLBACK');
-    console.error('Error creating container:', error);
+    console.error('Error creating/updating container:', error);
     if (error.code === '23505') {
       res.status(400).json({ error: 'Container number already exists' });
     } else if (error.code === '23503') {
       res.status(400).json({ error: 'Invalid shipment ID' });
     } else {
-      res.status(500).json({ error: 'Failed to create container' });
+      res.status(500).json({ error: 'Failed to create/update container' });
     }
   } finally {
     client.release();

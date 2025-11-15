@@ -187,7 +187,7 @@ CREATE TABLE container_items (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     container_id UUID REFERENCES containers(id) ON DELETE CASCADE,
     shipment_id UUID REFERENCES shipments(id) ON DELETE CASCADE,
-    name TEXT NOT NULL,
+    description TEXT NOT NULL,
     quantity INTEGER NOT NULL DEFAULT 1,
     unit cargo_unit NOT NULL,
     cn_code VARCHAR(20) CHECK (cn_code ~ '^[0-9]{8,10}$'),

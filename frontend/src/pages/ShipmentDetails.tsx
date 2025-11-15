@@ -1,9 +1,10 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { shipmentsAPI } from '@/lib/api'
+import { shipmentsAPI, containersAPI } from '@/lib/api'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, ExternalLink, Package, Truck, Calendar, MapPin } from 'lucide-react'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { ArrowLeft, ExternalLink, Package, Truck, Calendar, MapPin, Container } from 'lucide-react'
 
 export function ShipmentDetails() {
   const { shipmentNumber } = useParams<{ shipmentNumber: string }>()
@@ -23,6 +24,38 @@ export function ShipmentDetails() {
     queryFn: () => shipmentsAPI.getById(shipment.id),
     enabled: !!shipment?.id,
   })
+
+  // Fetch containers for this shipment
+  const { data: containers, isLoading: containersLoading } = useQuery({
+    queryKey: ['shipment-containers', shipment?.id],
+    queryFn: () => shipmentsAPI.getContainers(shipment.id),
+    enabled: !!shipment?.id,
+  })
+
+  // Fetch items for all containers (we'll filter by shipment_id)
+  const containerIds = containers?.map((c: any) => c.id) || []
+  const { data: allContainerItems } = useQuery({
+    queryKey: ['container-items-batch', containerIds, shipment?.id],
+    queryFn: async () => {
+      if (!containerIds.length || !shipment?.id) return []
+      const itemsPromises = containerIds.map((containerId: string) =>
+        containersAPI.getItems(containerId).catch(() => [])
+      )
+      const allItems = await Promise.all(itemsPromises)
+      // Flatten and filter by shipment_id
+      return allItems.flat().filter((item: any) => item.shipment_id === shipment.id)
+    },
+    enabled: containerIds.length > 0 && !!shipment?.id,
+  })
+
+  // Group items by container_id
+  const itemsByContainer = allContainerItems?.reduce((acc: any, item: any) => {
+    if (!acc[item.container_id]) {
+      acc[item.container_id] = []
+    }
+    acc[item.container_id].push(item)
+    return acc
+  }, {}) || {}
 
   const data = shipmentDetails || shipment
 
@@ -220,6 +253,86 @@ export function ShipmentDetails() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Containers Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Container className="h-5 w-5" />
+            Containers
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {containersLoading ? (
+            <p className="text-gray-500">Loading containers...</p>
+          ) : containers && containers.length > 0 ? (
+            <div className="space-y-6">
+              {containers.map((container: any) => {
+                const containerItems = itemsByContainer[container.id] || []
+                return (
+                  <div key={container.id} className="border rounded-lg p-4 space-y-3">
+                    {/* Container Header */}
+                    <div className="grid grid-cols-4 gap-4 pb-3 border-b">
+                      <div>
+                        <p className="text-xs text-gray-500">Container Number</p>
+                        <p className="font-semibold text-base">{container.container_number}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Container Type</p>
+                        <p className="text-sm">{container.container_type || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Tare Weight (kg)</p>
+                        <p className="text-sm">{container.tare_weight || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Gross Weight (kg)</p>
+                        <p className="text-sm">{container.gross_weight || 'N/A'}</p>
+                      </div>
+                    </div>
+
+                    {/* Items Table */}
+                    {containerItems.length > 0 ? (
+                      <div>
+                        <p className="text-sm font-medium text-gray-700 mb-2">Items in this container:</p>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Item Name</TableHead>
+                              <TableHead>Quantity</TableHead>
+                              <TableHead>Unit</TableHead>
+                              <TableHead>CN Code</TableHead>
+                              <TableHead>EU Code</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {containerItems.map((item: any) => (
+                              <TableRow key={item.id}>
+                                <TableCell className="font-medium">
+                                  {item.description || item.name || 'N/A'}
+                                </TableCell>
+                                <TableCell>{item.quantity}</TableCell>
+                                <TableCell>{item.unit}</TableCell>
+                                <TableCell>{item.cn_code || 'N/A'}</TableCell>
+                                <TableCell>{item.eu_code || 'N/A'}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500">No items for this shipment in this container</p>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          ) : (
+            <p className="text-gray-500">No containers linked to this shipment</p>
+          )}
+        </CardContent>
+      </Card>
+
     </div>
   )
 }

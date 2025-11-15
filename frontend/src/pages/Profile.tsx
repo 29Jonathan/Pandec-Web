@@ -263,36 +263,6 @@ export function Profile() {
           </CardContent>
         </Card>
 
-        {/* Account Details Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Account Details</CardTitle>
-            <CardDescription>Additional account information</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="flex justify-between py-2 border-b">
-              <span className="text-sm font-medium text-gray-500">User ID</span>
-              <span className="text-sm text-gray-900 font-mono">{user?.id}</span>
-            </div>
-            <div className="flex justify-between py-2 border-b">
-              <span className="text-sm font-medium text-gray-500">Email Confirmed</span>
-              <span className="text-sm text-gray-900">
-                {user?.email_confirmed_at ? (
-                  <span className="text-green-600">✓ Verified</span>
-                ) : (
-                  <span className="text-yellow-600">Pending</span>
-                )}
-              </span>
-            </div>
-            <div className="flex justify-between py-2 border-b">
-              <span className="text-sm font-medium text-gray-500">Last Sign In</span>
-              <span className="text-sm text-gray-900">
-                {formatDate(user?.last_sign_in_at)}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Security Card */}
         <Card>
           <CardHeader>

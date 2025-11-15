@@ -6,12 +6,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { ContainerModal } from '@/components/modals/ContainerModal'
-import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { ContainerDetailsModal } from '@/components/modals/ContainerDetailsModal'
+import { Pencil, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 export function Containers() {
   const [modalOpen, setModalOpen] = useState(false)
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false)
   const [editingContainer, setEditingContainer] = useState<any>(null)
+  const [selectedContainer, setSelectedContainer] = useState<any>(null)
   const { user } = useAuth()
   const queryClient = useQueryClient()
   
@@ -39,9 +42,15 @@ export function Containers() {
     }
   }
 
-  const handleEdit = (container: any) => {
+  const handleEdit = (e: React.MouseEvent, container: any) => {
+    e.stopPropagation()
     setEditingContainer(container)
     setModalOpen(true)
+  }
+
+  const handleRowClick = (container: any) => {
+    setSelectedContainer(container)
+    setDetailsModalOpen(true)
   }
 
   const handleCloseModal = () => {
@@ -49,16 +58,15 @@ export function Containers() {
     setEditingContainer(null)
   }
 
+  const handleCloseDetailsModal = () => {
+    setDetailsModalOpen(false)
+    setSelectedContainer(null)
+  }
+
   return (
     <div>
-      <div className="flex justify-between items-center mb-8">
+      <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Containers</h1>
-        {isAdmin && (
-          <Button onClick={() => setModalOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Container
-          </Button>
-        )}
       </div>
 
       <Card>
@@ -74,42 +82,47 @@ export function Containers() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Container Number</TableHead>
-                  <TableHead>Shipment</TableHead>
-                  <TableHead>Type</TableHead>
+                  <TableHead>Related Shipments</TableHead>
+                  <TableHead>Container Type</TableHead>
                   <TableHead>Tare Weight (kg)</TableHead>
                   <TableHead>Gross Weight (kg)</TableHead>
-                  <TableHead>Goods</TableHead>
-                  <TableHead>Created</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {containers.map((container: any) => (
-                  <TableRow key={container.id}>
+                  <TableRow 
+                    key={container.id}
+                    className="cursor-pointer hover:bg-gray-50"
+                    onClick={() => handleRowClick(container)}
+                  >
                     <TableCell className="font-medium">{container.container_number}</TableCell>
-                    <TableCell>{container.shipment_number || 'N/A'}</TableCell>
-                    <TableCell>{container.container_type}</TableCell>
-                    <TableCell>{container.tare_weight}</TableCell>
-                    <TableCell>{container.gross_weight}</TableCell>
                     <TableCell>
-                      {container.goods && container.goods.length > 0 ? (
-                        <div className="text-sm">
-                          {container.goods.map((g: any, i: number) => (
-                            <div key={i}>{g.goods_name} (x{g.quantity})</div>
+                      {container.shipment_numbers ? (
+                        <div className="flex flex-wrap gap-1">
+                          {container.shipment_numbers.split(', ').map((num: string, idx: number) => (
+                            <span 
+                              key={idx}
+                              className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded"
+                            >
+                              {num}
+                            </span>
                           ))}
                         </div>
                       ) : (
-                        'Empty'
+                        <span className="text-gray-400">No shipments</span>
                       )}
                     </TableCell>
-                    <TableCell>{new Date(container.created_at).toLocaleDateString()}</TableCell>
-                    <TableCell>
+                    <TableCell>{container.container_type || 'N/A'}</TableCell>
+                    <TableCell>{container.tare_weight || 'N/A'}</TableCell>
+                    <TableCell>{container.gross_weight || 'N/A'}</TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
                       {isAdmin && (
                         <div className="flex gap-2">
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleEdit(container)}
+                            onClick={(e) => handleEdit(e, container)}
                             title="Edit container"
                           >
                             <Pencil className="h-4 w-4" />
@@ -141,6 +154,12 @@ export function Containers() {
         open={modalOpen} 
         onOpenChange={handleCloseModal}
         container={editingContainer}
+      />
+
+      <ContainerDetailsModal 
+        open={detailsModalOpen} 
+        onOpenChange={handleCloseDetailsModal}
+        container={selectedContainer}
       />
     </div>
   )
