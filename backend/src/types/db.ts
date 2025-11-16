@@ -34,7 +34,9 @@ export interface User {
   role: UserRole;
   company_name: string;
   phone: string;
-  address: string;
+  address1: string;
+  address2: string;
+  country: string;
   vat_number: string;
   eori_number: string;
   created_at: Date;

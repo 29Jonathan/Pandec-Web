@@ -37,17 +37,23 @@ export const authenticate = async (
     
     // Load user from local database
     const result = await pool.query(
-      'SELECT id, name, email, role, company_name, phone, address, vat_number, eori_number, created_at, updated_at FROM users WHERE id = $1',
+      'SELECT id, name, email, role, company_name, phone, address1, address2, country, vat_number, eori_number, created_at, updated_at FROM users WHERE id = $1',
       [user.id]
     );
     
     if (result.rows.length === 0) {
       // User not synced yet - try to sync now with all required fields
       try {
+        // Handle migration: if old address field exists, use it for address1
+        const oldAddress = user.user_metadata?.address || 'Not Set'
+        const address1 = user.user_metadata?.address1 || oldAddress
+        const address2 = user.user_metadata?.address2 || ''
+        const country = user.user_metadata?.country || 'Not Set'
+        
         const syncResult = await pool.query(
-          `INSERT INTO users (id, name, email, role, company_name, phone, address, vat_number, eori_number, password)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-           RETURNING id, name, email, role, company_name, phone, address, vat_number, eori_number, created_at, updated_at`,
+          `INSERT INTO users (id, name, email, role, company_name, phone, address1, address2, country, vat_number, eori_number, password)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+           RETURNING id, name, email, role, company_name, phone, address1, address2, country, vat_number, eori_number, created_at, updated_at`,
           [
             user.id,
             user.user_metadata?.name || user.email?.split('@')[0] || 'User',
@@ -55,7 +61,9 @@ export const authenticate = async (
             user.user_metadata?.role || 'Shipper',
             user.user_metadata?.company_name || 'Not Set',
             user.user_metadata?.phone || 'Not Set',
-            user.user_metadata?.address || 'Not Set',
+            address1,
+            address2,
+            country,
             user.user_metadata?.vat_number || 'Not Set',
             user.user_metadata?.eori_number || 'Not Set',
             'supabase-auth-managed'
@@ -66,7 +74,7 @@ export const authenticate = async (
         if (syncError.code === '23505') {
           // Already exists, fetch again
           const retryResult = await pool.query(
-            'SELECT id, name, email, role, company_name, phone, address, vat_number, eori_number, created_at, updated_at FROM users WHERE id = $1',
+            'SELECT id, name, email, role, company_name, phone, address1, address2, country, vat_number, eori_number, created_at, updated_at FROM users WHERE id = $1',
             [user.id]
           );
           req.user = retryResult.rows[0] as User;

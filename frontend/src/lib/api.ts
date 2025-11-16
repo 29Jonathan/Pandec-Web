@@ -102,6 +102,7 @@ export const containersAPI = {
     fetchAPI(`/containers/${id}/link`, { method: 'POST', body: JSON.stringify({ shipment_id }) }),
   unlink: (id: string, shipment_id: string) => 
     fetchAPI(`/containers/${id}/unlink`, { method: 'POST', body: JSON.stringify({ shipment_id }) }),
+  getShipments: (id: string) => fetchAPI(`/containers/${id}/shipments`),
   getItems: (id: string) => fetchAPI(`/containers/${id}/items`),
   addItem: (id: string, data: any) => 
     fetchAPI(`/containers/${id}/items`, { method: 'POST', body: JSON.stringify(data) }),

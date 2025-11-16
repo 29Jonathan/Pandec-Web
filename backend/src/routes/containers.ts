@@ -73,6 +73,26 @@ router.get('/:id', async (req: AuthRequest, res) => {
   }
 });
 
+// Get shipments linked to a container
+router.get('/:id/shipments', async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      `SELECT s.id, s.shipment_number, s.status
+       FROM shipment_containers sc
+       JOIN shipments s ON sc.shipment_id = s.id
+       WHERE sc.container_id = $1
+       ORDER BY s.shipment_number`,
+      [id]
+    );
+    
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Error fetching container shipments:', error);
+    res.status(500).json({ error: 'Failed to fetch container shipments' });
+  }
+});
+
 // Create new container (or update if exists by container_number)
 router.post('/', async (req: AuthRequest, res) => {
   const client = await pool.connect();

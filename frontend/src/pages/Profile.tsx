@@ -3,10 +3,51 @@ import { useAuth } from '@/contexts/AuthContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { SearchableSelect } from '@/components/ui/searchable-select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { User, Mail, Phone, Shield, Calendar, Building, MapPin, FileText } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
+
+// List of countries for dropdown
+const COUNTRIES = [
+  'Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Argentina', 'Armenia', 'Australia', 'Austria', 'Azerbaijan',
+  'Bahamas', 'Bahrain', 'Bangladesh', 'Barbados', 'Belarus', 'Belgium', 'Belize', 'Benin', 'Bhutan', 'Bolivia',
+  'Bosnia and Herzegovina', 'Botswana', 'Brazil', 'Brunei', 'Bulgaria', 'Burkina Faso', 'Burundi',
+  'Cambodia', 'Cameroon', 'Canada', 'Cape Verde', 'Central African Republic', 'Chad', 'Chile', 'China', 'Colombia',
+  'Comoros', 'Congo', 'Costa Rica', 'Croatia', 'Cuba', 'Cyprus', 'Czech Republic',
+  'Denmark', 'Djibouti', 'Dominica', 'Dominican Republic',
+  'Ecuador', 'Egypt', 'El Salvador', 'Equatorial Guinea', 'Eritrea', 'Estonia', 'Eswatini', 'Ethiopia',
+  'Fiji', 'Finland', 'France',
+  'Gabon', 'Gambia', 'Georgia', 'Germany', 'Ghana', 'Greece', 'Grenada', 'Guatemala', 'Guinea', 'Guinea-Bissau', 'Guyana',
+  'Haiti', 'Honduras', 'Hungary',
+  'Iceland', 'India', 'Indonesia', 'Iran', 'Iraq', 'Ireland', 'Israel', 'Italy', 'Ivory Coast',
+  'Jamaica', 'Japan', 'Jordan',
+  'Kazakhstan', 'Kenya', 'Kiribati', 'Kosovo', 'Kuwait', 'Kyrgyzstan',
+  'Laos', 'Latvia', 'Lebanon', 'Lesotho', 'Liberia', 'Libya', 'Liechtenstein', 'Lithuania', 'Luxembourg',
+  'Madagascar', 'Malawi', 'Malaysia', 'Maldives', 'Mali', 'Malta', 'Marshall Islands', 'Mauritania', 'Mauritius',
+  'Mexico', 'Micronesia', 'Moldova', 'Monaco', 'Mongolia', 'Montenegro', 'Morocco', 'Mozambique', 'Myanmar',
+  'Namibia', 'Nauru', 'Nepal', 'Netherlands', 'New Zealand', 'Nicaragua', 'Niger', 'Nigeria', 'North Korea', 'North Macedonia', 'Norway',
+  'Oman',
+  'Pakistan', 'Palau', 'Palestine', 'Panama', 'Papua New Guinea', 'Paraguay', 'Peru', 'Philippines', 'Poland', 'Portugal',
+  'Qatar',
+  'Romania', 'Russia', 'Rwanda',
+  'Saint Kitts and Nevis', 'Saint Lucia', 'Saint Vincent and the Grenadines', 'Samoa', 'San Marino',
+  'Sao Tome and Principe', 'Saudi Arabia', 'Senegal', 'Serbia', 'Seychelles', 'Sierra Leone', 'Singapore',
+  'Slovakia', 'Slovenia', 'Solomon Islands', 'Somalia', 'South Africa', 'South Korea', 'South Sudan', 'Spain',
+  'Sri Lanka', 'Sudan', 'Suriname', 'Sweden', 'Switzerland', 'Syria',
+  'Taiwan', 'Tajikistan', 'Tanzania', 'Thailand', 'Timor-Leste', 'Togo', 'Tonga', 'Trinidad and Tobago', 'Tunisia',
+  'Turkey', 'Turkmenistan', 'Tuvalu',
+  'Uganda', 'Ukraine', 'United Arab Emirates', 'United Kingdom', 'United States', 'Uruguay', 'Uzbekistan',
+  'Vanuatu', 'Vatican City', 'Venezuela', 'Vietnam',
+  'Yemen',
+  'Zambia', 'Zimbabwe'
+]
+
+const countryOptions = COUNTRIES.map((country) => ({
+  value: country,
+  label: country,
+}))
 
 export function Profile() {
   const { user } = useAuth()
@@ -16,7 +57,9 @@ export function Profile() {
     name: user?.user_metadata?.name || '',
     company_name: user?.user_metadata?.company_name || '',
     phone: user?.user_metadata?.phone || '',
-    address: user?.user_metadata?.address || '',
+    address1: user?.user_metadata?.address1 || user?.user_metadata?.address || '',
+    address2: user?.user_metadata?.address2 || '',
+    country: user?.user_metadata?.country || '',
     vat_number: user?.user_metadata?.vat_number || '',
     eori_number: user?.user_metadata?.eori_number || '',
   })
@@ -31,7 +74,9 @@ export function Profile() {
           name: formData.name,
           company_name: formData.company_name,
           phone: formData.phone,
-          address: formData.address,
+          address1: formData.address1,
+          address2: formData.address2,
+          country: formData.country,
           vat_number: formData.vat_number,
           eori_number: formData.eori_number,
         },
@@ -114,7 +159,18 @@ export function Profile() {
                   <div className="flex-1">
                     <p className="text-sm font-medium text-gray-500">Address</p>
                     <p className="text-base text-gray-900">
-                      {user?.user_metadata?.address || 'Not set'}
+                      {(() => {
+                        const address1 = user?.user_metadata?.address1 || user?.user_metadata?.address || ''
+                        const address2 = user?.user_metadata?.address2 || ''
+                        const country = user?.user_metadata?.country || ''
+                        
+                        if (!address1 && !address2 && !country) {
+                          return 'Not set'
+                        }
+                        
+                        const parts = [address1, address2, country].filter(Boolean)
+                        return parts.join(', ') || 'Not set'
+                      })()}
                     </p>
                   </div>
                 </div>
@@ -206,12 +262,33 @@ export function Profile() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="address">Address</Label>
+                  <Label htmlFor="address1">Address 1</Label>
                   <Input
-                    id="address"
-                    value={formData.address}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    placeholder="123 Main St, City, Country"
+                    id="address1"
+                    value={formData.address1}
+                    onChange={(e) => setFormData({ ...formData, address1: e.target.value })}
+                    placeholder="Street address"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="address2">Address 2</Label>
+                  <Input
+                    id="address2"
+                    value={formData.address2}
+                    onChange={(e) => setFormData({ ...formData, address2: e.target.value })}
+                    placeholder="Postal code and city"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="country">Country</Label>
+                  <SearchableSelect
+                    value={formData.country}
+                    onValueChange={(value) => setFormData({ ...formData, country: value })}
+                    options={countryOptions}
+                    placeholder="Select country"
+                    searchPlaceholder="Search countries..."
                   />
                 </div>
 
@@ -248,7 +325,9 @@ export function Profile() {
                         name: user?.user_metadata?.name || '',
                         company_name: user?.user_metadata?.company_name || '',
                         phone: user?.user_metadata?.phone || '',
-                        address: user?.user_metadata?.address || '',
+                        address1: user?.user_metadata?.address1 || user?.user_metadata?.address || '',
+                        address2: user?.user_metadata?.address2 || '',
+                        country: user?.user_metadata?.country || '',
                         vat_number: user?.user_metadata?.vat_number || '',
                         eori_number: user?.user_metadata?.eori_number || '',
                       })

@@ -10,7 +10,9 @@ export interface SignUpData {
   name: string
   company_name: string
   phone: string
-  address: string
+  address1: string
+  address2: string
+  country: string
   vat_number: string
   eori_number: string
   role?: string
@@ -43,7 +45,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: session.user.email,
           company_name: session.user.user_metadata?.company_name,
           phone: session.user.user_metadata?.phone,
-          address: session.user.user_metadata?.address,
+          address1: session.user.user_metadata?.address1 || session.user.user_metadata?.address || '',
+          address2: session.user.user_metadata?.address2 || '',
+          country: session.user.user_metadata?.country || '',
           vat_number: session.user.user_metadata?.vat_number,
           eori_number: session.user.user_metadata?.eori_number,
           role: session.user.user_metadata?.role || 'Shipper',
@@ -67,7 +71,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: session.user.email,
           company_name: session.user.user_metadata?.company_name,
           phone: session.user.user_metadata?.phone,
-          address: session.user.user_metadata?.address,
+          address1: session.user.user_metadata?.address1 || session.user.user_metadata?.address || '',
+          address2: session.user.user_metadata?.address2 || '',
+          country: session.user.user_metadata?.country || '',
           vat_number: session.user.user_metadata?.vat_number,
           eori_number: session.user.user_metadata?.eori_number,
           role: session.user.user_metadata?.role || 'Shipper',
@@ -91,7 +97,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             name: data.name,
             company_name: data.company_name,
             phone: data.phone,
-            address: data.address,
+            address1: data.address1,
+            address2: data.address2,
+            country: data.country,
             vat_number: data.vat_number,
             eori_number: data.eori_number,
             role: data.role || 'Shipper',
@@ -109,7 +117,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: data.email,
           company_name: data.company_name,
           phone: data.phone,
-          address: data.address,
+          address1: data.address1,
+          address2: data.address2,
+          country: data.country,
           vat_number: data.vat_number,
           eori_number: data.eori_number,
           role: data.role || 'Shipper',

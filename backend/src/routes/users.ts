@@ -21,7 +21,7 @@ router.get('/me', async (req: AuthRequest, res) => {
 router.get('/', async (req: AuthRequest, res) => {
   try {
     const { role, email, q } = req.query;
-    let query = 'SELECT id, name, email, role, company_name, phone, address, vat_number, eori_number, created_at FROM users WHERE 1=1';
+    let query = 'SELECT id, name, email, role, company_name, phone, address1, address2, country, vat_number, eori_number, created_at FROM users WHERE 1=1';
     const params: any[] = [];
     let paramIndex = 1;
     
@@ -64,7 +64,7 @@ router.get('/:id', async (req: AuthRequest, res) => {
     }
     
     const result = await pool.query(
-      'SELECT id, name, email, role, company_name, phone, address, vat_number, eori_number, created_at FROM users WHERE id = $1',
+      'SELECT id, name, email, role, company_name, phone, address1, address2, country, vat_number, eori_number, created_at FROM users WHERE id = $1',
       [id]
     );
     
@@ -83,7 +83,7 @@ router.get('/:id', async (req: AuthRequest, res) => {
 router.put('/:id', async (req: AuthRequest, res) => {
   try {
     const { id } = req.params;
-    const { name, role, company_name, phone, address, vat_number, eori_number } = req.body;
+    const { name, role, company_name, phone, address1, address2, country, vat_number, eori_number } = req.body;
     
     // Users can update their own profile or admin can update anyone
     if (req.user!.role !== 'Admin' && req.user!.id !== id) {
@@ -119,9 +119,21 @@ router.put('/:id', async (req: AuthRequest, res) => {
       paramIndex++;
     }
     
-    if (address !== undefined) {
-      fieldsToUpdate.push(`address = $${paramIndex}`);
-      params.push(address);
+    if (address1 !== undefined) {
+      fieldsToUpdate.push(`address1 = $${paramIndex}`);
+      params.push(address1);
+      paramIndex++;
+    }
+    
+    if (address2 !== undefined) {
+      fieldsToUpdate.push(`address2 = $${paramIndex}`);
+      params.push(address2);
+      paramIndex++;
+    }
+    
+    if (country !== undefined) {
+      fieldsToUpdate.push(`country = $${paramIndex}`);
+      params.push(country);
       paramIndex++;
     }
     
@@ -146,7 +158,7 @@ router.put('/:id', async (req: AuthRequest, res) => {
       UPDATE users
       SET ${fieldsToUpdate.join(', ')}
       WHERE id = $${paramIndex}
-      RETURNING id, name, email, role, company_name, phone, address, vat_number, eori_number, updated_at
+      RETURNING id, name, email, role, company_name, phone, address1, address2, country, vat_number, eori_number, updated_at
     `;
     
     const result = await pool.query(query, params);
@@ -182,7 +194,7 @@ router.delete('/:id', requireAdmin, async (req: AuthRequest, res) => {
 // Sync user from Supabase Auth (upsert)
 router.post('/sync', async (req: AuthRequest, res) => {
   try {
-    const { name, email, phone, role, company_name, address, vat_number, eori_number } = req.body;
+    const { name, email, phone, role, company_name, address1, address2, country, vat_number, eori_number } = req.body;
     const userId = req.authUserId;
     
     if (!userId || !email) {
@@ -216,9 +228,21 @@ router.post('/sync', async (req: AuthRequest, res) => {
         paramIndex++;
       }
       
-      if (address) {
-        fieldsToUpdate.push(`address = $${paramIndex}`);
-        params.push(address);
+      if (address1) {
+        fieldsToUpdate.push(`address1 = $${paramIndex}`);
+        params.push(address1);
+        paramIndex++;
+      }
+      
+      if (address2 !== undefined) {
+        fieldsToUpdate.push(`address2 = $${paramIndex}`);
+        params.push(address2);
+        paramIndex++;
+      }
+      
+      if (country) {
+        fieldsToUpdate.push(`country = $${paramIndex}`);
+        params.push(country);
         paramIndex++;
       }
       
@@ -243,7 +267,7 @@ router.post('/sync', async (req: AuthRequest, res) => {
       if (fieldsToUpdate.length === 0) {
         // No fields to update, just return existing user
         const result = await pool.query(
-          'SELECT id, name, email, role, company_name, phone, address, vat_number, eori_number, created_at, updated_at FROM users WHERE id = $1',
+          'SELECT id, name, email, role, company_name, phone, address1, address2, country, vat_number, eori_number, created_at, updated_at FROM users WHERE id = $1',
           [userId]
         );
         return res.json(result.rows[0]);
@@ -254,24 +278,24 @@ router.post('/sync', async (req: AuthRequest, res) => {
         UPDATE users
         SET ${fieldsToUpdate.join(', ')}
         WHERE id = $${paramIndex}
-        RETURNING id, name, email, role, company_name, phone, address, vat_number, eori_number, created_at, updated_at
+        RETURNING id, name, email, role, company_name, phone, address1, address2, country, vat_number, eori_number, created_at, updated_at
       `;
       
       const result = await pool.query(query, params);
       return res.json(result.rows[0]);
     } else {
       // Insert new user - all required fields must be provided
-      if (!company_name || !phone || !address || !vat_number || !eori_number) {
+      if (!company_name || !phone || !address1 || !country || !vat_number || !eori_number) {
         return res.status(400).json({ 
-          error: 'Missing required fields: company_name, phone, address, vat_number, and eori_number are required for new users' 
+          error: 'Missing required fields: company_name, phone, address1, country, vat_number, and eori_number are required for new users' 
         });
       }
       
       const result = await pool.query(
-        `INSERT INTO users (id, name, email, role, company_name, phone, address, vat_number, eori_number, password)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-         RETURNING id, name, email, role, company_name, phone, address, vat_number, eori_number, created_at, updated_at`,
-        [userId, name, email, role || 'Shipper', company_name, phone, address, vat_number, eori_number, 'supabase-auth-managed']
+        `INSERT INTO users (id, name, email, role, company_name, phone, address1, address2, country, vat_number, eori_number, password)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+         RETURNING id, name, email, role, company_name, phone, address1, address2, country, vat_number, eori_number, created_at, updated_at`,
+        [userId, name, email, role || 'Shipper', company_name, phone, address1, address2 || '', country, vat_number, eori_number, 'supabase-auth-managed']
       );
       return res.status(201).json(result.rows[0]);
     }
