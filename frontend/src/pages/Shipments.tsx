@@ -10,7 +10,8 @@ import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { ShipmentModal } from '@/components/modals/ShipmentModal'
 import { ContainerModal } from '@/components/modals/ContainerModal'
-import { ExternalLink, Pencil, Search, ArrowUpDown, Package } from 'lucide-react'
+import { ShipmentDocumentsModal } from '@/components/modals/ShipmentDocumentsModal'
+import { ExternalLink, Pencil, Search, ArrowUpDown, Package, FileText } from 'lucide-react'
 import { toast } from 'sonner'
 
 type SortField = 'order_code' | 'load_date' | 'departure_date' | 'arrival_date'
@@ -21,6 +22,8 @@ export function Shipments() {
   const [containerModalOpen, setContainerModalOpen] = useState(false)
   const [editingShipment, setEditingShipment] = useState<any>(null)
   const [selectedShipmentId, setSelectedShipmentId] = useState<string | undefined>(undefined)
+  const [documentsModalOpen, setDocumentsModalOpen] = useState(false)
+  const [shipmentForDocuments, setShipmentForDocuments] = useState<any | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
   const [sortField, setSortField] = useState<SortField>('order_code')
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
@@ -70,16 +73,16 @@ export function Shipments() {
           bVal = b.order_code || ''
           break
         case 'load_date':
-          aVal = a.load_date ? new Date(a.load_date).getTime() : 0
-          bVal = b.load_date ? new Date(b.load_date).getTime() : 0
+          aVal = a.load_date ? new Date(a.load_date).getTime() : Number.MAX_SAFE_INTEGER
+          bVal = b.load_date ? new Date(b.load_date).getTime() : Number.MAX_SAFE_INTEGER
           break
         case 'departure_date':
-          aVal = a.departure_date ? new Date(a.departure_date).getTime() : 0
-          bVal = b.departure_date ? new Date(b.departure_date).getTime() : 0
+          aVal = a.departure_date ? new Date(a.departure_date).getTime() : Number.MAX_SAFE_INTEGER
+          bVal = b.departure_date ? new Date(b.departure_date).getTime() : Number.MAX_SAFE_INTEGER
           break
         case 'arrival_date':
-          aVal = a.arrival_date ? new Date(a.arrival_date).getTime() : 0
-          bVal = b.arrival_date ? new Date(b.arrival_date).getTime() : 0
+          aVal = a.arrival_date ? new Date(a.arrival_date).getTime() : Number.MAX_SAFE_INTEGER
+          bVal = b.arrival_date ? new Date(b.arrival_date).getTime() : Number.MAX_SAFE_INTEGER
           break
         default:
           return 0
@@ -111,6 +114,18 @@ export function Shipments() {
   const handleCloseContainerModal = () => {
     setContainerModalOpen(false)
     setSelectedShipmentId(undefined)
+  }
+
+  const handleOpenDocuments = (shipment: any) => {
+    setShipmentForDocuments(shipment)
+    setDocumentsModalOpen(true)
+  }
+
+  const handleCloseDocuments = (open: boolean) => {
+    setDocumentsModalOpen(open)
+    if (!open) {
+      setShipmentForDocuments(null)
+    }
   }
   
   const updateShipmentMutation = useMutation({
@@ -300,6 +315,14 @@ export function Shipments() {
                         >
                           <Package className="h-4 w-4" />
                         </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleOpenDocuments(shipment)}
+                          title="Shipment documents"
+                        >
+                          <FileText className="h-4 w-4" />
+                        </Button>
                         {isAdmin && (
                           <Button
                             variant="ghost"
@@ -332,6 +355,13 @@ export function Shipments() {
         open={containerModalOpen} 
         onOpenChange={handleCloseContainerModal}
         shipmentId={selectedShipmentId}
+      />
+
+      <ShipmentDocumentsModal
+        open={documentsModalOpen}
+        onOpenChange={handleCloseDocuments}
+        shipmentId={shipmentForDocuments?.id}
+        shipmentNumber={shipmentForDocuments?.shipment_number}
       />
     </div>
   )

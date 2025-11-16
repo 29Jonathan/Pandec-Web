@@ -276,7 +276,7 @@ export function OrderModal({ open, onOpenChange, order }: OrderModalProps) {
             </div>
 
             <div className="col-span-2">
-              <Label htmlFor="load_date">Goods Load Date</Label>
+              <Label htmlFor="load_date">Goods Load Date *</Label>
               <Input
                 id="load_date"
                 type="date"
