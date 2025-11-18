@@ -51,6 +51,8 @@ export const usersAPI = {
   getRelations: (id: string) => fetchAPI(`/users/${id}/relations`),
   addRelation: (id: string, related_user_id: string) => 
     fetchAPI(`/users/${id}/relations`, { method: 'POST', body: JSON.stringify({ related_user_id }) }),
+  addVirtualRelation: (id: string, data: any) => 
+    fetchAPI(`/users/${id}/relations/virtual`, { method: 'POST', body: JSON.stringify(data) }),
   removeRelation: (id: string, related_user_id: string) => 
     fetchAPI(`/users/${id}/relations/${related_user_id}`, { method: 'DELETE' }),
 }

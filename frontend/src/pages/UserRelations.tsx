@@ -9,11 +9,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label'
 import { UserPlus, Trash2, Users as UsersIcon } from 'lucide-react'
 import { toast } from 'sonner'
+import { VirtualUserModal } from '@/components/modals/VirtualUserModal'
 
 export function UserRelations() {
   const { user } = useAuth()
   const queryClient = useQueryClient()
   const [selectedUserId, setSelectedUserId] = useState('')
+  const [virtualUserOpen, setVirtualUserOpen] = useState(false)
 
   // Fetch current user's relations
   const { data: relations, isLoading: relationsLoading } = useQuery({
@@ -136,11 +138,21 @@ export function UserRelations() {
 
       {/* Related Users List */}
       <Card>
-        <CardHeader>
-          <CardTitle>Your Related Users</CardTitle>
-          <CardDescription>
-            Users you are connected with for business collaboration
-          </CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Your Related Users</CardTitle>
+            <CardDescription>
+              Users you are connected with for business collaboration
+            </CardDescription>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setVirtualUserOpen(true)}
+          >
+            <UserPlus className="h-4 w-4 mr-2" />
+            Add virtual user
+          </Button>
         </CardHeader>
         <CardContent>
           {relationsLoading ? (
@@ -193,6 +205,8 @@ export function UserRelations() {
           )}
         </CardContent>
       </Card>
+
+      <VirtualUserModal open={virtualUserOpen} onOpenChange={setVirtualUserOpen} />
     </div>
   )
 }

@@ -377,6 +377,79 @@ router.post('/:id/relations', async (req: AuthRequest, res) => {
   }
 });
 
+// Create virtual user and add as relation
+router.post('/:id/relations/virtual', async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      name,
+      email,
+      phone,
+      role,
+      company_name,
+      vat_number,
+      eori_number,
+      address1,
+      address2,
+      country,
+    } = req.body;
+
+    // Users can add their own relations or admin can add for anyone
+    if (req.user!.role !== 'Admin' && req.user!.id !== id) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    if (!name || !email || !phone || !role) {
+      return res.status(400).json({ error: 'name, email, phone, and role are required' });
+    }
+
+    const validRoles = ['Admin', 'Shipper', 'Receiver', 'ForwardingAgent'];
+    if (!validRoles.includes(role)) {
+      return res.status(400).json({ error: 'Invalid role' });
+    }
+
+    // Create virtual user (no real password, placeholder value)
+    const userResult = await pool.query(
+      `INSERT INTO users (name, email, password, role, company_name, phone, address1, address2, country, vat_number, eori_number)
+       VALUES ($1, $2, $3, $4, COALESCE($5, ''), $6, COALESCE($7, ''), COALESCE($8, ''), COALESCE($9, ''), COALESCE($10, ''), COALESCE($11, ''))
+       RETURNING id, name, email, role, phone`,
+      [
+        name,
+        email,
+        'virtual-user',
+        role,
+        company_name,
+        phone,
+        address1,
+        address2,
+        country,
+        vat_number,
+        eori_number,
+      ]
+    );
+
+    const createdUser = userResult.rows[0];
+
+    // Insert relation (trigger will create reverse)
+    await pool.query(
+      'INSERT INTO user_relations (user_id, related_user_id) VALUES ($1, $2)',
+      [id, createdUser.id]
+    );
+
+    return res.status(201).json({
+      message: 'Virtual user created and relation added successfully',
+      user: createdUser,
+    });
+  } catch (error: any) {
+    console.error('Error creating virtual user relation:', error);
+    if (error.code === '23505') {
+      // Unique violation (likely email)
+      return res.status(400).json({ error: 'A user with this email already exists' });
+    }
+    return res.status(500).json({ error: 'Failed to create virtual user relation' });
+  }
+});
+
 // Delete user relation
 router.delete('/:id/relations/:related_user_id', async (req: AuthRequest, res) => {
   try {
