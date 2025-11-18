@@ -7,6 +7,7 @@ import ordersRouter from './routes/orders';
 import offersRouter from './routes/offers';
 import shipmentsRouter from './routes/shipments';
 import containersRouter from './routes/containers';
+import metaRouter from './routes/meta';
 
 // Load environment variables
 dotenv.config();
@@ -37,6 +38,7 @@ app.use('/api/orders', authenticate, ordersRouter);
 app.use('/api/offers', authenticate, offersRouter);
 app.use('/api/shipments', authenticate, shipmentsRouter);
 app.use('/api/containers', authenticate, containersRouter);
+app.use('/api/meta', authenticate, metaRouter);
 
 // 404 handler
 app.use((req: Request, res: Response) => {

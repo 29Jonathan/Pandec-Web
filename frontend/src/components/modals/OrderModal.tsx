@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { ordersAPI, usersAPI } from '@/lib/api'
+import { ordersAPI, usersAPI, metaAPI } from '@/lib/api'
 import { useAuth } from '@/contexts/AuthContext'
 import { toast } from 'sonner'
 import {
@@ -42,15 +42,19 @@ export function OrderModal({ open, onOpenChange, order }: OrderModalProps) {
     load_date: '',
   })
   
-  const [cargoItems, setCargoItems] = useState<CargoItem[]>([
-    { cargo_unit: 'Container', cargo_quantity: 1 }
-  ])
+  const [cargoItems, setCargoItems] = useState<CargoItem[]>([])
 
   // Fetch user's relations (only show related users)
   const { data: relations, isLoading: relationsLoading } = useQuery({
     queryKey: ['user-relations', user?.id],
     queryFn: () => usersAPI.getRelations(user!.id),
     enabled: !!user,
+  })
+
+  // Fetch available ports (port_type enum values)
+  const { data: ports, isLoading: portsLoading } = useQuery({
+    queryKey: ['ports'],
+    queryFn: () => metaAPI.getPorts(),
   })
 
   useEffect(() => {
@@ -67,14 +71,14 @@ export function OrderModal({ open, onOpenChange, order }: OrderModalProps) {
           goods_description: order.goods_description || '',
           load_date: order.load_date ? order.load_date.split('T')[0] : '',
         })
-        // Load cargo items from order
+        // Load cargo items from order (if any)
         if (order.cargo && Array.isArray(order.cargo) && order.cargo.length > 0) {
           setCargoItems(order.cargo.map((c: any) => ({
             cargo_unit: c.cargo_unit,
             cargo_quantity: c.cargo_quantity
           })))
         } else {
-          setCargoItems([{ cargo_unit: 'Container', cargo_quantity: 1 }])
+          setCargoItems([])
         }
       } else {
         // Create mode - default sender to current user
@@ -88,7 +92,7 @@ export function OrderModal({ open, onOpenChange, order }: OrderModalProps) {
           goods_description: '',
           load_date: '',
         })
-        setCargoItems([{ cargo_unit: 'Container', cargo_quantity: 1 }])
+        setCargoItems([])
       }
     }
   }, [open, user, order])
@@ -122,9 +126,7 @@ export function OrderModal({ open, onOpenChange, order }: OrderModalProps) {
   }
 
   const removeCargoItem = (index: number) => {
-    if (cargoItems.length > 1) {
-      setCargoItems(cargoItems.filter((_, i) => i !== index))
-    }
+    setCargoItems(cargoItems.filter((_, i) => i !== index))
   }
 
   const updateCargoItem = (index: number, field: keyof CargoItem, value: any) => {
@@ -219,24 +221,42 @@ export function OrderModal({ open, onOpenChange, order }: OrderModalProps) {
 
             <div>
               <Label htmlFor="from_port">From Port *</Label>
-              <Input
-                id="from_port"
+              <Select
                 value={formData.from_port}
-                onChange={(e) => setFormData({ ...formData, from_port: e.target.value })}
-                placeholder="Shanghai Port"
-                required
-              />
+                onValueChange={(value) => setFormData({ ...formData, from_port: value })}
+                disabled={portsLoading}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={portsLoading ? 'Loading ports...' : 'Select origin port'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {ports?.map((port: string) => (
+                    <SelectItem key={port} value={port}>
+                      {port}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
               <Label htmlFor="to_port">To Port *</Label>
-              <Input
-                id="to_port"
+              <Select
                 value={formData.to_port}
-                onChange={(e) => setFormData({ ...formData, to_port: e.target.value })}
-                placeholder="Los Angeles Port"
-                required
-              />
+                onValueChange={(value) => setFormData({ ...formData, to_port: value })}
+                disabled={portsLoading}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={portsLoading ? 'Loading ports...' : 'Select destination port'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {ports?.map((port: string) => (
+                    <SelectItem key={port} value={port}>
+                      {port}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
@@ -286,10 +306,23 @@ export function OrderModal({ open, onOpenChange, order }: OrderModalProps) {
             </div>
           </div>
 
+          {/* Goods Description */}
+          <div className="col-span-2">
+            <Label htmlFor="goods_description">Goods General Description *</Label>
+            <Textarea
+              id="goods_description"
+              value={formData.goods_description}
+              onChange={(e) => setFormData({ ...formData, goods_description: e.target.value })}
+              placeholder="Describe the goods being shipped (e.g., Electronics, Textiles, Machinery)..."
+              rows={3}
+              required
+            />
+          </div>          
+
           {/* Cargo Items Section */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label>Cargo Items *</Label>
+              <Label>Cargo Items</Label>
               <Button
                 type="button"
                 variant="outline"
@@ -313,6 +346,9 @@ export function OrderModal({ open, onOpenChange, order }: OrderModalProps) {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Container">Container</SelectItem>
+                      <SelectItem value="Container-FCL 20GC">Container-FCL 20GC</SelectItem>
+                      <SelectItem value="Container-FCL 40GC">Container-FCL 40GC</SelectItem>
+                      <SelectItem value="Container-FCL 40HC">Container-FCL 40HC</SelectItem>
                       <SelectItem value="Pallet">Pallet</SelectItem>
                       <SelectItem value="Box">Box</SelectItem>
                       <SelectItem value="Piece">Piece</SelectItem>
@@ -339,7 +375,6 @@ export function OrderModal({ open, onOpenChange, order }: OrderModalProps) {
                     variant="ghost"
                     size="sm"
                     onClick={() => removeCargoItem(index)}
-                    disabled={cargoItems.length === 1}
                     className="w-full"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -347,19 +382,6 @@ export function OrderModal({ open, onOpenChange, order }: OrderModalProps) {
                 </div>
               </div>
             ))}
-          </div>
-
-          {/* Goods Description */}
-          <div className="col-span-2">
-            <Label htmlFor="goods_description">Goods General Description *</Label>
-            <Textarea
-              id="goods_description"
-              value={formData.goods_description}
-              onChange={(e) => setFormData({ ...formData, goods_description: e.target.value })}
-              placeholder="Describe the goods being shipped (e.g., Electronics, Textiles, Machinery)..."
-              rows={3}
-              required
-            />
           </div>
 
           <div className="flex justify-end space-x-2 pt-4">

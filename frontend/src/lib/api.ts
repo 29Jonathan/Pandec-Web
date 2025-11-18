@@ -32,6 +32,11 @@ async function fetchAPI(endpoint: string, options: RequestInit = {}) {
   return response.json()
 }
 
+// Meta API
+export const metaAPI = {
+  getPorts: () => fetchAPI('/meta/ports'),
+}
+
 // Users API
 export const usersAPI = {
   me: () => fetchAPI('/users/me'),

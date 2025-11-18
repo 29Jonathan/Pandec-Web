@@ -140,10 +140,6 @@ router.post('/', async (req: AuthRequest, res) => {
       return res.status(400).json({ error: 'Missing required fields' });
     }
     
-    if (!cargo || !Array.isArray(cargo) || cargo.length === 0) {
-      return res.status(400).json({ error: 'At least one cargo item is required' });
-    }
-    
     await client.query('BEGIN');
     
     // Create order (still keeping old fields for backward compatibility)
@@ -162,18 +158,20 @@ router.post('/', async (req: AuthRequest, res) => {
     
     const orderId = orderResult.rows[0].id;
     
-    // Insert cargo items
-    for (const item of cargo) {
-      if (!item.cargo_unit || !item.cargo_quantity) {
-        await client.query('ROLLBACK');
-        return res.status(400).json({ error: 'Each cargo item must have cargo_unit and cargo_quantity' });
+    // Insert cargo items if provided
+    if (cargo && Array.isArray(cargo) && cargo.length > 0) {
+      for (const item of cargo) {
+        if (!item.cargo_unit || !item.cargo_quantity) {
+          await client.query('ROLLBACK');
+          return res.status(400).json({ error: 'Each cargo item must have cargo_unit and cargo_quantity' });
+        }
+        
+        await client.query(
+          `INSERT INTO order_cargo (order_id, cargo_unit, cargo_quantity)
+           VALUES ($1, $2, $3)`,
+          [orderId, item.cargo_unit, item.cargo_quantity]
+        );
       }
-      
-      await client.query(
-        `INSERT INTO order_cargo (order_id, cargo_unit, cargo_quantity)
-         VALUES ($1, $2, $3)`,
-        [orderId, item.cargo_unit, item.cargo_quantity]
-      );
     }
     
     await client.query('COMMIT');
@@ -206,7 +204,7 @@ router.post('/', async (req: AuthRequest, res) => {
     if (error.code === '23503') {
       res.status(400).json({ error: 'Invalid sender or receiver ID' });
     } else if (error.code === '23514') {
-      res.status(400).json({ error: 'Invalid enum value for delivery_type, incoterm, or cargo_unit' });
+      res.status(400).json({ error: 'Invalid enum value for delivery_type or incoterm' });
     } else {
       res.status(500).json({ error: 'Failed to create order' });
     }
@@ -254,26 +252,23 @@ router.put('/:id', canAccessOrder, async (req: AuthRequest, res) => {
     
     // Update cargo if provided
     if (cargo && Array.isArray(cargo)) {
-      if (cargo.length === 0) {
-        await client.query('ROLLBACK');
-        return res.status(400).json({ error: 'At least one cargo item is required' });
-      }
-      
-      // Delete existing cargo items
+      // Delete existing cargo items first
       await client.query('DELETE FROM order_cargo WHERE order_id = $1', [id]);
       
-      // Insert new cargo items
-      for (const item of cargo) {
-        if (!item.cargo_unit || !item.cargo_quantity) {
-          await client.query('ROLLBACK');
-          return res.status(400).json({ error: 'Each cargo item must have cargo_unit and cargo_quantity' });
+      // If the new cargo array is non-empty, insert items; otherwise leave order with no cargo
+      if (cargo.length > 0) {
+        for (const item of cargo) {
+          if (!item.cargo_unit || !item.cargo_quantity) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ error: 'Each cargo item must have cargo_unit and cargo_quantity' });
+          }
+          
+          await client.query(
+            `INSERT INTO order_cargo (order_id, cargo_unit, cargo_quantity)
+             VALUES ($1, $2, $3)`,
+            [id, item.cargo_unit, item.cargo_quantity]
+          );
         }
-        
-        await client.query(
-          `INSERT INTO order_cargo (order_id, cargo_unit, cargo_quantity)
-           VALUES ($1, $2, $3)`,
-          [id, item.cargo_unit, item.cargo_quantity]
-        );
       }
     }
     

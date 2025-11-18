@@ -18,7 +18,12 @@ export type ShipmentStatus =
   | 'ContainerBeingReturned'
   | 'ReturnCompleted';
 
-export type CargoUnit = 'Container' | 'Pallet' | 'Box' | 'Piece' | 'Roll' | 'Package';
+// Stored as TEXT in order_cargo; frontend still uses a fixed dropdown set
+export type CargoUnit = string;
+
+export type Unit = 'Pallet' | 'Box' | 'Piece' | 'Roll' | 'Package';
+
+export type ContainerType = 'None' | 'FCL-20GC' | 'FCL-40GC' | 'FCL-40HC';
 
 export type DeliveryType = 'Air' | 'Sea' | 'Land';
 
@@ -107,7 +112,7 @@ export interface Shipment {
 export interface Container {
   id: string;
   container_number: string;
-  container_type?: string;
+  container_type?: ContainerType;
   tare_weight?: number;
   gross_weight?: number;
   created_at: Date;
@@ -127,7 +132,7 @@ export interface ContainerItem {
   shipment_id?: string;
   description: string;
   quantity: number;
-  unit: CargoUnit;
+  unit: Unit;
   cn_code?: string;
   eu_code?: string;
   created_at: Date;

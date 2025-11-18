@@ -35,7 +35,7 @@ export function Dashboard() {
     },
     {
       name: 'Completed',
-      value: shipments?.filter((s: any) => s.status === 'Delivered').length || 0,
+      value: shipments?.filter((s: any) => s.status === 'Completed').length || 0,
       icon: DollarSign,
       color: 'text-purple-600',
     },
@@ -76,8 +76,8 @@ export function Dashboard() {
                 {orders.slice(0, 5).map((order: any) => (
                   <div key={order.id} className="flex justify-between items-center border-b pb-2">
                     <div>
-                      <p className="font-medium">{order.from_location} → {order.to_location}</p>
-                      <p className="text-sm text-gray-600">{order.from_user_name}</p>
+                      <p className="font-medium">{order.from_port} → {order.to_port}</p>
+                      <p className="text-sm text-gray-600">{order.sender_name}</p>
                     </div>
                     <span className={`px-2 py-1 text-xs rounded-full ${
                       order.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' :
@@ -108,7 +108,7 @@ export function Dashboard() {
                   <div key={shipment.id} className="flex justify-between items-center border-b pb-2">
                     <div>
                       <p className="font-medium">{shipment.shipment_number}</p>
-                      <p className="text-sm text-gray-600">{shipment.from_location} → {shipment.to_location}</p>
+                      <p className="text-sm text-gray-600">{shipment.from_port} → {shipment.to_port}</p>
                     </div>
                     <span className={`px-2 py-1 text-xs rounded-full ${
                       shipment.status === 'Scheduled' ? 'bg-gray-100 text-gray-800' :

@@ -32,7 +32,11 @@ CREATE TYPE shipment_status AS ENUM (
     'ReturnCompleted'
 );
 
-CREATE TYPE cargo_unit AS ENUM ('Container', 'Pallet', 'Box', 'Piece', 'Roll', 'Package');
+-- New enum: unit for container_items.unit
+CREATE TYPE unit AS ENUM ('Pallet', 'Box', 'Piece', 'Roll', 'Package');
+
+-- New enum: container_type for containers.container_type
+CREATE TYPE container_type AS ENUM ('None', 'FCL-20GC', 'FCL-40GC', 'FCL-40HC');
 
 CREATE TYPE delivery_type AS ENUM ('Air', 'Sea', 'Land');
 
@@ -100,8 +104,8 @@ CREATE TABLE orders (
     order_code VARCHAR(100) UNIQUE NOT NULL DEFAULT CONCAT('ORD-', LPAD(nextval('order_code_seq')::TEXT, 6, '0')),
     sender_id UUID REFERENCES users(id) ON DELETE SET NULL,
     receiver_id UUID REFERENCES users(id) ON DELETE SET NULL,
-    from_port VARCHAR(255) NOT NULL,
-    to_port VARCHAR(255) NOT NULL,
+    from_port port_type NOT NULL,
+    to_port port_type NOT NULL,
     goods_description TEXT,
     delivery_type delivery_type NOT NULL,
     incoterm incoterm NOT NULL,
@@ -117,7 +121,7 @@ CREATE TABLE orders (
 CREATE TABLE order_cargo (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
-    cargo_unit cargo_unit NOT NULL,
+    cargo_unit TEXT NOT NULL,
     cargo_quantity INTEGER NOT NULL DEFAULT 1,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -164,7 +168,7 @@ CREATE TABLE shipments (
 CREATE TABLE containers (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     container_number VARCHAR(100) UNIQUE NOT NULL,
-    container_type VARCHAR(50),
+    container_type container_type,
     tare_weight DECIMAL(10,2),
     gross_weight DECIMAL(10,2),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -191,7 +195,7 @@ CREATE TABLE container_items (
     shipment_id UUID REFERENCES shipments(id) ON DELETE CASCADE,
     description TEXT NOT NULL,
     quantity INTEGER NOT NULL DEFAULT 1,
-    unit cargo_unit NOT NULL,
+    unit unit NOT NULL,
     cn_code VARCHAR(20) CHECK (cn_code ~ '^[0-9]{8,10}$'),
     eu_code VARCHAR(20) CHECK (eu_code ~ '^[0-9]{8,10}$'),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),

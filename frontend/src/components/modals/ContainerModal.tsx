@@ -38,13 +38,13 @@ export function ContainerModal({ open, onOpenChange, shipmentId, container }: Co
   const queryClient = useQueryClient()
   const [formData, setFormData] = useState({
     container_number: '',
-    container_type: '40ft Standard',
+    container_type: 'None',
     tare_weight: '',
     gross_weight: '',
   })
   const [selectedShipments, setSelectedShipments] = useState<string[]>([])
   const [items, setItems] = useState<ContainerItem[]>([
-    { name: '', quantity: 1, unit: 'Container', cn_code: '', eu_code: '' }
+    { name: '', quantity: 1, unit: 'Pallet', cn_code: '', eu_code: '' }
   ])
 
   // Fetch all shipments
@@ -73,7 +73,7 @@ export function ContainerModal({ open, onOpenChange, shipmentId, container }: Co
       // Editing mode
       setFormData({
         container_number: container.container_number || '',
-        container_type: container.container_type || '40ft Standard',
+        container_type: container.container_type || 'None',
         tare_weight: container.tare_weight?.toString() || '',
         gross_weight: container.gross_weight?.toString() || '',
       })
@@ -81,13 +81,13 @@ export function ContainerModal({ open, onOpenChange, shipmentId, container }: Co
       // Reset form when opening for new container
       setFormData({
         container_number: '',
-        container_type: '40ft Standard',
+        container_type: 'None',
         tare_weight: '',
         gross_weight: '',
       })
       if (shipmentId) {
         setSelectedShipments([shipmentId])
-        setItems([{ name: '', quantity: 1, unit: 'Container', cn_code: '', eu_code: '', shipment_id: shipmentId }])
+        setItems([{ name: '', quantity: 1, unit: 'Pallet', cn_code: '', eu_code: '', shipment_id: shipmentId }])
       } else {
         setSelectedShipments([])
         setItems([])
@@ -109,7 +109,7 @@ export function ContainerModal({ open, onOpenChange, shipmentId, container }: Co
         id: item.id,
         name: item.name || item.description || '',
         quantity: item.quantity || 1,
-        unit: item.unit || 'Container',
+        unit: item.unit || 'Pallet',
         cn_code: item.cn_code || '',
         eu_code: item.eu_code || '',
         shipment_id: item.shipment_id,
@@ -260,7 +260,7 @@ export function ContainerModal({ open, onOpenChange, shipmentId, container }: Co
     setItems([...items, { 
       name: '', 
       quantity: 1, 
-      unit: 'Container', 
+      unit: 'Pallet', 
       cn_code: '', 
       eu_code: '',
       shipment_id: shipmentIdToUse
@@ -382,23 +382,26 @@ export function ContainerModal({ open, onOpenChange, shipmentId, container }: Co
               </div>
 
               <div>
-                <Label htmlFor="container_type">Container Type</Label>
-                <Select
-                  value={formData.container_type}
-                  onValueChange={(value) => setFormData({ ...formData, container_type: value })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="20ft Standard">20ft Standard</SelectItem>
-                    <SelectItem value="40ft Standard">40ft Standard</SelectItem>
-                    <SelectItem value="40ft High Cube">40ft High Cube</SelectItem>
-                    <SelectItem value="45ft High Cube">45ft High Cube</SelectItem>
-                    <SelectItem value="20ft Refrigerated">20ft Refrigerated</SelectItem>
-                    <SelectItem value="40ft Refrigerated">40ft Refrigerated</SelectItem>
-                  </SelectContent>
-                </Select>
+              <Label htmlFor="container_type">Container Type</Label>
+              <Select
+                value={formData.container_type}
+                onValueChange={(value) => setFormData({ ...formData, container_type: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="None">
+                    <div className="flex items-center space-x-2">
+                      <span>None</span>
+                      <span className="text-xs text-gray-500">- not using container</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="FCL-20GC">FCL-20GC</SelectItem>
+                  <SelectItem value="FCL-40GC">FCL-40GC</SelectItem>
+                  <SelectItem value="FCL-40HC">FCL-40HC</SelectItem>
+                </SelectContent>
+              </Select>
               </div>
 
               <div>
@@ -547,7 +550,6 @@ export function ContainerModal({ open, onOpenChange, shipmentId, container }: Co
                                             <SelectValue />
                                           </SelectTrigger>
                                           <SelectContent>
-                                            <SelectItem value="Container">Container</SelectItem>
                                             <SelectItem value="Pallet">Pallet</SelectItem>
                                             <SelectItem value="Box">Box</SelectItem>
                                             <SelectItem value="Piece">Piece</SelectItem>
@@ -681,7 +683,6 @@ export function ContainerModal({ open, onOpenChange, shipmentId, container }: Co
                                             <SelectValue />
                                           </SelectTrigger>
                                           <SelectContent>
-                                            <SelectItem value="Container">Container</SelectItem>
                                             <SelectItem value="Pallet">Pallet</SelectItem>
                                             <SelectItem value="Box">Box</SelectItem>
                                             <SelectItem value="Piece">Piece</SelectItem>
