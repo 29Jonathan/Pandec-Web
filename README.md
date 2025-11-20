@@ -4,7 +4,7 @@ A full-stack logistics management web application for managing Users, Orders, Pr
 
 ## 🎯 Overview
 
-Pandec is designed for small internal teams (about 20 users) to manage the complete logistics workflow:
+Pandec is designed for small company and customers(about 30 users) to manage the complete logistics workflow:
 - Users create orders requesting shipment
 - Admin prepare and send price offers for each order
 - When the user accepts the offer, a Shipment is created
