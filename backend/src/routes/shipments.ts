@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { pool } from '../config/database';
 import { AuthRequest, requireAdmin } from '../middleware/auth';
 import { canAccessShipment, buildShipmentsFilter } from '../middleware/permissions';
+import { sendShipmentStatusEmail } from '../services/email';
 
 const router = Router();
 
@@ -134,7 +135,14 @@ router.put('/:id', canAccessShipment, async (req: AuthRequest, res) => {
       return res.status(404).json({ error: 'Shipment not found' });
     }
     
-    res.json(result.rows[0]);
+    const updatedShipment = result.rows[0];
+    
+    // Fire-and-forget emails to sender and receiver for specific status changes
+    sendShipmentStatusEmail(updatedShipment.id).catch((err) => {
+      console.error('Failed to send shipment status email', err);
+    });
+    
+    res.json(updatedShipment);
   } catch (error: any) {
     console.error('Error updating shipment:', error);
     if (error.code === '23514') {

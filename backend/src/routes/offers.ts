@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { pool } from '../config/database';
 import { AuthRequest, requireAdmin } from '../middleware/auth';
 import { canAccessOffer, buildOffersFilter } from '../middleware/permissions';
+import { sendOfferCreatedEmails, sendOfferStatusEmail } from '../services/email';
 
 const router = Router();
 
@@ -124,7 +125,14 @@ router.post('/', requireAdmin, async (req: AuthRequest, res) => {
     );
     
     await client.query('COMMIT');
-    res.status(201).json(offerResult.rows[0]);
+    
+    const offer = offerResult.rows[0];
+    // Fire-and-forget emails to sender and receiver about new offer
+    sendOfferCreatedEmails(offer.id).catch((err) => {
+      console.error('Failed to send offer created emails', err);
+    });
+    
+    res.status(201).json(offer);
   } catch (error: any) {
     await client.query('ROLLBACK');
     console.error('Error creating offer:', error);
@@ -205,7 +213,7 @@ router.post('/:id/status', canAccessOffer, async (req: AuthRequest, res) => {
     if (action === 'accept') {
       // Update offer to Accepted
       const offerResult = await client.query(
-        "UPDATE offers SET status = 'Accepted' WHERE id = $1 AND status = 'Pending' RETURNING order_id",
+        "UPDATE offers SET status = 'Accepted' WHERE id = $1 AND status = 'Pending' RETURNING id, order_id",
         [id]
       );
       
@@ -214,7 +222,8 @@ router.post('/:id/status', canAccessOffer, async (req: AuthRequest, res) => {
         return res.status(400).json({ error: 'Offer not found or already processed' });
       }
       
-      const order_id = offerResult.rows[0].order_id;
+      const offerRow = offerResult.rows[0];
+      const order_id = offerRow.order_id;
       
       // Trigger will auto-create shipment and update order status
       
@@ -231,6 +240,12 @@ router.post('/:id/status', canAccessOffer, async (req: AuthRequest, res) => {
       );
       
       await client.query('COMMIT');
+      
+      // Fire-and-forget email to admins about accepted offer
+      sendOfferStatusEmail(offerRow.id, 'accept').catch((err) => {
+        console.error('Failed to send offer accepted email', err);
+      });
+      
       res.json({
         message: 'Offer accepted successfully',
         shipment: shipmentResult.rows[0] || null
@@ -239,7 +254,7 @@ router.post('/:id/status', canAccessOffer, async (req: AuthRequest, res) => {
     } else if (action === 'reject') {
       // Update offer to Rejected
       const offerResult = await client.query(
-        "UPDATE offers SET status = 'Rejected' WHERE id = $1 AND status = 'Pending' RETURNING order_id",
+        "UPDATE offers SET status = 'Rejected' WHERE id = $1 AND status = 'Pending' RETURNING id, order_id",
         [id]
       );
       
@@ -248,7 +263,8 @@ router.post('/:id/status', canAccessOffer, async (req: AuthRequest, res) => {
         return res.status(400).json({ error: 'Offer not found or already processed' });
       }
       
-      const order_id = offerResult.rows[0].order_id;
+      const offerRow = offerResult.rows[0];
+      const order_id = offerRow.order_id;
       
       // Update order status back to Pending
       await client.query(
@@ -257,6 +273,12 @@ router.post('/:id/status', canAccessOffer, async (req: AuthRequest, res) => {
       );
       
       await client.query('COMMIT');
+      
+      // Fire-and-forget email to admins about rejected offer
+      sendOfferStatusEmail(offerRow.id, 'reject').catch((err) => {
+        console.error('Failed to send offer rejected email', err);
+      });
+      
       res.json({ message: 'Offer rejected successfully' });
     }
   } catch (error) {

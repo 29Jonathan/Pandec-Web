@@ -8,14 +8,20 @@
     "build": "tsc -p .",
     "start": "node dist/index.js"
   },
-  "keywords": ["logistics", "express", "supabase"],
+  "keywords": [
+    "logistics",
+    "express",
+    "supabase"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@supabase/supabase-js": "^2.80.0",
+    "@types/nodemailer": "^7.0.4",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
+    "nodemailer": "^7.0.10",
     "pg": "^8.16.3"
   },
   "devDependencies": {

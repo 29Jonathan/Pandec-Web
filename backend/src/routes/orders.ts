@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { pool } from '../config/database';
 import { AuthRequest, requireAdmin } from '../middleware/auth';
 import { canAccessOrder, buildOrdersFilter } from '../middleware/permissions';
+import { sendOrderCreatedEmail } from '../services/email';
 
 const router = Router();
 
@@ -175,6 +176,11 @@ router.post('/', async (req: AuthRequest, res) => {
     }
     
     await client.query('COMMIT');
+    
+    // Fire-and-forget email to admins about new order (do not block response)
+    sendOrderCreatedEmail(orderId).catch((err) => {
+      console.error('Failed to send order created email', err);
+    });
     
     // Fetch the complete order with cargo
     const result = await pool.query(
